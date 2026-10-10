@@ -1,0 +1,12 @@
+@model ReservationInput
+@{
+    ViewData["Title"] = "New reservation";
+    var fieldOptions = new ViewDataDictionary(ViewData) { { "LockGuest", false }, { "ShowSource", true } };
+}
+<h1 class="h3 mb-3">New reservation</h1>
+<form asp-action="Create" method="post">
+    <partial name="_ReservationFields" model="Model" view-data="fieldOptions" />
+    <button class="btn btn-primary" type="submit">Save reservation</button>
+    <a class="btn btn-link" asp-action="Index">Cancel</a>
+</form>
+@section Scripts { <partial name="_ValidationScriptsPartial" /> }

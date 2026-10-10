@@ -1,0 +1,56 @@
+@model List<Reservation>
+@{ ViewData["Title"] = "My reservations"; var today = DateOnly.FromDateTime(DateTime.Today); }
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h1 class="h3 mb-0">My reservations</h1>
+    <a class="btn btn-primary btn-sm" asp-controller="Booking" asp-action="Index">+ Book a table</a>
+</div>
+
+@{
+    var upcoming = Model.Where(r => r.Sitting.SittingDate >= today).OrderBy(r => r.Sitting.SittingDate).ThenBy(r => r.StartTime).ToList();
+    var past = Model.Where(r => r.Sitting.SittingDate < today).ToList();
+}
+
+<h2 class="h5">Current and upcoming</h2>
+@if (!upcoming.Any()) { <p class="text-muted">You have no upcoming reservations.</p> }
+else
+{
+    <table class="table align-middle">
+        <thead><tr><th>Date</th><th>Sitting</th><th>Start</th><th>Guests</th><th>Status</th><th></th></tr></thead>
+        <tbody>
+        @foreach (var r in upcoming)
+        {
+            <tr>
+                <td>@r.Sitting.SittingDate.ToString("ddd d MMM yyyy")</td>
+                <td>@r.Sitting.SittingType</td>
+                <td>@r.StartTime.ToString("h:mm tt")</td>
+                <td>@r.NumberOfGuests</td>
+                <td><span class="badge @UiHelpers.StatusBadge(r.Status)">@r.Status</span></td>
+                <td class="text-end">
+                    @if (r.Status is ReservationStatus.Pending or ReservationStatus.Confirmed)
+                    {
+                        <form asp-action="Cancel" asp-route-id="@r.ReservationId" method="post"
+                              onsubmit="return confirm('Cancel this reservation?');">
+                            <button class="btn btn-sm btn-outline-danger">Cancel</button></form>
+                    }
+                </td>
+            </tr>
+        }
+        </tbody>
+    </table>
+}
+
+<h2 class="h5 mt-4">Past</h2>
+@if (!past.Any()) { <p class="text-muted">No past reservations.</p> }
+else
+{
+    <table class="table table-sm">
+        <thead><tr><th>Date</th><th>Sitting</th><th>Guests</th><th>Status</th></tr></thead>
+        <tbody>
+        @foreach (var r in past)
+        {
+            <tr><td>@r.Sitting.SittingDate.ToString("ddd d MMM yyyy")</td><td>@r.Sitting.SittingType</td><td>@r.NumberOfGuests</td>
+                <td><span class="badge @UiHelpers.StatusBadge(r.Status)">@r.Status</span></td></tr>
+        }
+        </tbody>
+    </table>
+}

@@ -1,0 +1,55 @@
+@model BeanScene.Web.DataStructures.PendingFollowUpQueue
+@{
+    ViewData["Title"] = "Follow-up";
+    var found = ViewBag.Found as Reservation;
+    string? lastName = ViewBag.LastName as string;
+}
+<h1 class="h3 mb-1">Pending reservations to follow up</h1>
+<p class="text-muted">Soonest sitting first (merge sort, stored in a doubly linked list). @Model.Count pending.</p>
+
+<form method="get" class="row g-2 mb-3">
+    <div class="col-auto"><input name="lastName" value="@lastName" class="form-control form-control-sm" placeholder="Find by last name" /></div>
+    <div class="col-auto"><button class="btn btn-sm btn-secondary">Find (binary search)</button></div>
+</form>
+@if (!string.IsNullOrWhiteSpace(lastName))
+{
+    if (found != null)
+    {
+        <div class="alert alert-info">Found: <a asp-action="Details" asp-route-id="@found.ReservationId">#@found.ReservationId @found.Customer.FullName</a>
+            - @found.Sitting.SittingDate.ToString("ddd d MMM") @found.Sitting.SittingType</div>
+    }
+    else
+    {
+        <div class="alert alert-warning">No pending reservation for "@lastName".</div>
+    }
+}
+
+@if (Model.Count == 0)
+{
+    <p class="text-muted">Nothing to follow up.</p>
+}
+else
+{
+    <table class="table align-middle">
+        <thead><tr><th>Sitting</th><th>Start</th><th>Guest</th><th>Phone</th><th>Guests</th><th></th></tr></thead>
+        <tbody>
+        @foreach (var r in Model)
+        {
+            <tr>
+                <td>@r.Sitting.SittingDate.ToString("ddd d MMM") @r.Sitting.SittingType</td>
+                <td>@r.StartTime.ToString("h:mm tt")</td>
+                <td>@r.Customer.FullName</td>
+                <td>@r.Customer.PhoneNumber</td>
+                <td>@r.NumberOfGuests</td>
+                <td class="text-end">
+                    <form asp-action="Confirm" asp-route-id="@r.ReservationId" method="post" class="d-inline">
+                        <input type="hidden" name="returnTo" value="@Url.Action("FollowUp")" /><button class="btn btn-sm btn-primary">Confirm</button></form>
+                    <form asp-action="Cancel" asp-route-id="@r.ReservationId" method="post" class="d-inline">
+                        <input type="hidden" name="returnTo" value="@Url.Action("FollowUp")" /><button class="btn btn-sm btn-outline-danger">Cancel</button></form>
+                    <a class="btn btn-sm btn-outline-secondary" asp-action="Details" asp-route-id="@r.ReservationId">Open</a>
+                </td>
+            </tr>
+        }
+        </tbody>
+    </table>
+}

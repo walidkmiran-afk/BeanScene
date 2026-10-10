@@ -1,0 +1,28 @@
+@model SittingFormViewModel
+<div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
+<input type="hidden" asp-for="SittingId" />
+<input type="hidden" asp-for="RowVersion" />
+<div class="row">
+    <div class="col-md-4 mb-3"><label asp-for="SittingType" class="form-label"></label>
+        <select asp-for="SittingType" class="form-select" asp-items="Html.GetEnumSelectList<SittingType>()"></select></div>
+    <div class="col-md-4 mb-3"><label asp-for="SittingDate" class="form-label"></label>
+        <input type="date" name="SittingDate" value="@Model.SittingDate.ToString("yyyy-MM-dd")" class="form-control" />
+        <span asp-validation-for="SittingDate" class="text-danger"></span></div>
+    <div class="col-md-4 mb-3"><label asp-for="Capacity" class="form-label"></label>
+        <input asp-for="Capacity" class="form-control" /><span asp-validation-for="Capacity" class="text-danger"></span></div>
+</div>
+<div class="row">
+    <div class="col-md-4 mb-3"><label asp-for="StartTime" class="form-label"></label>
+        <input type="time" name="StartTime" value="@Model.StartTime.ToString("HH:mm")" class="form-control" />
+        <span asp-validation-for="StartTime" class="text-danger"></span></div>
+    <div class="col-md-4 mb-3"><label asp-for="EndTime" class="form-label"></label>
+        <input type="time" name="EndTime" value="@Model.EndTime.ToString("HH:mm")" class="form-control" />
+        <span asp-validation-for="EndTime" class="text-danger"></span></div>
+</div>
+<div class="row">
+    <div class="col-md-4 mb-3"><div class="form-check">
+        <input asp-for="IsClosed" class="form-check-input" /><label asp-for="IsClosed" class="form-check-label"></label></div></div>
+    <div class="col-md-4 mb-3"><label asp-for="ClosedReason" class="form-label"></label>
+        <select asp-for="ClosedReason" class="form-select" asp-items="Html.GetEnumSelectList<ClosedReason>()"></select>
+        <span asp-validation-for="ClosedReason" class="text-danger"></span></div>
+</div>

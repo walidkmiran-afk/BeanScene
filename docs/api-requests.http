@@ -1,0 +1,61 @@
+# REST API requests for Visual Studio 2022 (open this file; click "Send request" above each request).
+# Change the port to the one your app uses (see Properties/launchSettings.json or the browser address bar).
+@host = https://localhost:7000
+
+### 1. Log in as staff (stores the identity cookie for the later requests)
+POST {{host}}/api/auth/login
+Content-Type: application/json
+
+{ "email": "staff@beanscene.test", "password": "BeanScene!2026" }
+
+### 2. GET - search reservations
+GET {{host}}/api/reservations?status=Pending
+
+### 3. GET - one reservation
+GET {{host}}/api/reservations/1
+
+### 4. POST - create a reservation (use a SittingId from the Sittings page; times are HH:mm:ss)
+POST {{host}}/api/reservations
+Content-Type: application/json
+
+{
+  "sittingId": 3,
+  "startTime": "19:00:00",
+  "durationMinutes": 90,
+  "numberOfGuests": 2,
+  "source": "Phone",
+  "firstName": "Jo",
+  "lastName": "Citizen",
+  "email": "jo.citizen@example.com",
+  "phoneNumber": "0400123456",
+  "specialRequests": "Quiet table"
+}
+
+### 5. PUT - update a reservation (copy rowVersion from request 3 so concurrency can be checked)
+PUT {{host}}/api/reservations/1
+Content-Type: application/json
+
+{
+  "sittingId": 3,
+  "startTime": "19:30:00",
+  "durationMinutes": 90,
+  "numberOfGuests": 3,
+  "source": "Phone",
+  "firstName": "Jo",
+  "lastName": "Citizen",
+  "email": "jo.citizen@example.com",
+  "phoneNumber": "0400123456",
+  "rowVersion": "PASTE-THE-ROWVERSION-HERE"
+}
+
+### 6. PUT - change status
+PUT {{host}}/api/reservations/1/status?status=Confirmed
+
+### 7. Log out, log in as the manager, then DELETE (Manager only)
+POST {{host}}/api/auth/login
+Content-Type: application/json
+
+{ "email": "manager@beanscene.test", "password": "BeanScene!2026" }
+
+###
+DELETE {{host}}/api/reservations/1

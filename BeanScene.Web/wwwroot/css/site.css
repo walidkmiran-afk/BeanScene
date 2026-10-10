@@ -1,0 +1,25 @@
+body { min-height: 100vh; display: flex; flex-direction: column; }
+main { flex: 1; }
+.table-tile { min-width: 4.2rem; }
+.tile-label { cursor: pointer; }
+.tile-input:disabled + .tile-label { background: #dee2e6; color: #6c757d; cursor: not-allowed; text-decoration: line-through; }
+.tile-input:checked + .tile-label { background: #0d6efd; color: #fff; border-color: #0d6efd; }
+.stat { font-size: 2rem; font-weight: 600; }
+pre.log { background: #f8f9fa; border: 1px solid #dee2e6; padding: .75rem; border-radius: .375rem; white-space: pre-wrap; }
+
+
+/* Booking form: keep the date / sitting / start time / duration fields readable on narrower windows. */
+#startHour, #startMinute {
+    min-width: 5.5rem;
+}
+
+.input-group:has(#startHour) {
+    flex-wrap: nowrap;
+}
+
+@media (min-width: 768px) and (max-width: 1399.98px) {
+    .row:has(#sittingDate) > .col-md-3 {
+        flex: 0 0 auto;
+        width: 50%;
+    }
+}

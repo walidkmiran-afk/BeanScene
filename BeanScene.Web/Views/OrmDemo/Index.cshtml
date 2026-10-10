@@ -1,0 +1,24 @@
+@model List<OrmDemoStep>
+@{ ViewData["Title"] = "ORM demo"; }
+<h1 class="h3 mb-2">ORM demonstration</h1>
+<p class="text-muted">Runs eight small experiments against the database (loading strategies, entity states, transactions,
+    concurrency and exception handling). Temporary rows are created and deleted automatically. Use this page for screenshot evidence.</p>
+
+<form method="post">
+    <input type="hidden" name="run" value="true" />
+    <button class="btn btn-primary" type="submit">Run all experiments</button>
+</form>
+
+@foreach (var step in Model)
+{
+    <div class="card mt-3">
+        <div class="card-header d-flex justify-content-between">
+            <strong>@step.Title</strong>
+            <span class="badge @(step.Succeeded ? "text-bg-success" : "text-bg-danger")">@(step.Succeeded ? "OK" : "Failed")</span>
+        </div>
+        <div class="card-body">
+            <p class="small text-muted">@step.Explanation</p>
+            <pre class="log mb-0">@string.Join("\n", step.Lines)</pre>
+        </div>
+    </div>
+}

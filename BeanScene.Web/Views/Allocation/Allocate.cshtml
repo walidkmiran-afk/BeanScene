@@ -1,0 +1,33 @@
+@model AllocationViewModel
+@{ ViewData["Title"] = "Assign tables"; var r = Model.Reservation; }
+<h1 class="h3 mb-1">Assign tables</h1>
+<p class="text-muted">
+    Reservation #@r.ReservationId - @r.Customer.FullName, @r.NumberOfGuests guests, @r.Sitting.DisplayName,
+    @r.StartTime.ToString("h:mm tt") to @r.EndTime.ToString("h:mm tt")
+</p>
+
+<form asp-action="Allocate" asp-route-id="@r.ReservationId" method="post">
+    <div asp-validation-summary="All" class="alert alert-danger"></div>
+
+    @foreach (var area in Model.Areas)
+    {
+        <h2 class="h5 mt-3">@area.AreaName area</h2>
+        <div class="d-flex flex-wrap gap-2">
+        @foreach (var t in area.Tables)
+        {
+            var unavailable = Model.UnavailableTableIds.Contains(t.TableId);
+            var selected = Model.SelectedTableIds.Contains(t.TableId);
+            <div>
+                <input type="checkbox" class="btn-check tile-input" id="t@(t.TableId)" name="selectedTableIds" value="@t.TableId"
+                       checked="@(selected && !unavailable)" disabled="@unavailable" />
+                <label class="btn btn-outline-primary table-tile tile-label" for="t@(t.TableId)" title="Seats @t.Capacity">@t.TableName</label>
+            </div>
+        }
+        </div>
+    }
+
+    <p class="small text-muted mt-3">Greyed-out tables are held by another reservation at an overlapping time in this sitting.
+        Tables are saved in one database transaction.</p>
+    <button class="btn btn-primary" type="submit">Save tables</button>
+    <a class="btn btn-link" asp-controller="Reservations" asp-action="Details" asp-route-id="@r.ReservationId">Back</a>
+</form>

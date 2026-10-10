@@ -1,0 +1,13 @@
+@model Reservation
+@{ ViewData["Title"] = "Reservation received"; }
+<div class="alert alert-success">
+    <h1 class="h4">Thank you - your reservation request has been received.</h1>
+    <p class="mb-0">Status: <span class="badge @UiHelpers.StatusBadge(Model.Status)">@Model.Status</span>. A staff member will contact you to confirm.</p>
+</div>
+<dl class="row">
+    <dt class="col-sm-3">Reference</dt><dd class="col-sm-9">#@Model.ReservationId</dd>
+    <dt class="col-sm-3">Sitting</dt><dd class="col-sm-9">@Model.Sitting.DisplayName</dd>
+    <dt class="col-sm-3">Start time</dt><dd class="col-sm-9">@Model.StartTime.ToString("h:mm tt") for @Model.DurationMinutes minutes</dd>
+    <dt class="col-sm-3">Guests</dt><dd class="col-sm-9">@Model.NumberOfGuests</dd>
+</dl>
+<a class="btn btn-outline-primary" asp-action="Index">Make another reservation</a>

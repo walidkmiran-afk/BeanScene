@@ -1,0 +1,62 @@
+@using Microsoft.AspNetCore.Mvc.Rendering
+@model List<Reservation>
+@{
+    ViewData["Title"] = "Reservations";
+    var c = (ReservationSearchCriteria)ViewBag.Criteria;
+    var statusItems = Html.GetEnumSelectList<ReservationStatus>()
+        .Select(i => new SelectListItem(i.Text, i.Value, c.Status.HasValue && i.Value == ((int)c.Status.Value).ToString())).ToList();
+    var sourceItems = Html.GetEnumSelectList<ReservationSource>()
+        .Select(i => new SelectListItem(i.Text, i.Value, c.Source.HasValue && i.Value == ((int)c.Source.Value).ToString())).ToList();
+}
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h1 class="h3 mb-0">Reservations</h1>
+    <a class="btn btn-primary btn-sm" asp-action="Create">+ New reservation</a>
+</div>
+
+<form method="get" class="card card-body mb-3">
+    <div class="row g-2">
+        <div class="col-md-3"><label class="form-label small">Guest name or email</label>
+            <input name="Name" value="@c.Name" class="form-control form-control-sm" /></div>
+        <div class="col-md-2"><label class="form-label small">From</label>
+            <input type="date" name="From" value="@(c.From?.ToString("yyyy-MM-dd"))" class="form-control form-control-sm" /></div>
+        <div class="col-md-2"><label class="form-label small">To</label>
+            <input type="date" name="To" value="@(c.To?.ToString("yyyy-MM-dd"))" class="form-control form-control-sm" /></div>
+        <div class="col-md-2"><label class="form-label small">Status</label>
+            <select name="Status" class="form-select form-select-sm" asp-items="statusItems">
+                <option value="">Any</option></select></div>
+        <div class="col-md-2"><label class="form-label small">Source</label>
+            <select name="Source" class="form-select form-select-sm" asp-items="sourceItems">
+                <option value="">Any</option></select></div>
+        <div class="col-md-1"><label class="form-label small">Table</label>
+            <input name="TableName" value="@c.TableName" class="form-control form-control-sm" placeholder="M3" /></div>
+    </div>
+    <div class="mt-2"><button class="btn btn-sm btn-secondary" type="submit">Search</button>
+        <a class="btn btn-sm btn-link" asp-action="Index" asp-route-From="">Reset</a></div>
+</form>
+
+@if (!Model.Any())
+{
+    <p class="text-muted">No reservations match your search.</p>
+}
+else
+{
+    <table class="table table-hover align-middle">
+        <thead><tr><th>#</th><th>Sitting</th><th>Start</th><th>Guest</th><th>Guests</th><th>Source</th><th>Tables</th><th>Status</th><th></th></tr></thead>
+        <tbody>
+        @foreach (var r in Model)
+        {
+            <tr>
+                <td>@r.ReservationId</td>
+                <td>@r.Sitting.SittingDate.ToString("ddd d MMM") @r.Sitting.SittingType</td>
+                <td>@r.StartTime.ToString("h:mm tt")</td>
+                <td>@r.Customer.FullName<br /><span class="small text-muted">@r.Customer.PhoneNumber</span></td>
+                <td>@r.NumberOfGuests</td>
+                <td>@r.Source</td>
+                <td>@(string.Join(", ", r.ReservationTables.Select(rt => rt.Table.TableName).OrderBy(n => n)))</td>
+                <td><span class="badge @UiHelpers.StatusBadge(r.Status)">@r.Status</span></td>
+                <td class="text-end"><a class="btn btn-sm btn-outline-primary" asp-action="Details" asp-route-id="@r.ReservationId">Open</a></td>
+            </tr>
+        }
+        </tbody>
+    </table>
+}

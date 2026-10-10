@@ -1,0 +1,9 @@
+@model SittingFormViewModel
+@{ ViewData["Title"] = "New sitting"; }
+<h1 class="h3 mb-3">New sitting</h1>
+<form asp-action="Create" method="post">
+    <partial name="_Form" model="Model" />
+    <button class="btn btn-primary" type="submit">Create</button>
+    <a class="btn btn-link" asp-action="Index">Cancel</a>
+</form>
+@section Scripts { <partial name="_ValidationScriptsPartial" /> }

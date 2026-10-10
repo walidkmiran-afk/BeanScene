@@ -1,0 +1,219 @@
+@model ReservationInput
+@{
+    bool lockGuest = ViewData["LockGuest"] is true;       // members: details come from their account
+    bool showSource = ViewData["ShowSource"] is true;     // staff choose the source; online bookings are always "Online"
+
+    // The date picker narrows the sitting list to that day. The sittings come from the same SelectList the controller built.
+    var sittingList = ((SelectList)ViewBag.Sittings).Items.Cast<Sitting>().ToList();
+    var selectedSitting = sittingList.FirstOrDefault(s => s.SittingId == Model.SittingId);
+    var today = DateOnly.FromDateTime(DateTime.Today);
+    var minDate = sittingList.Count > 0 ? sittingList.Min(s => s.SittingDate) : today;
+    var maxDate = sittingList.Count > 0 ? sittingList.Max(s => s.SittingDate) : today;
+    var sittingJson = System.Text.Json.JsonSerializer.Serialize(sittingList.Select(s => new
+    {
+        id = s.SittingId,
+        date = s.SittingDate.ToString("yyyy-MM-dd"),
+        start = s.StartTime.ToString("HH:mm"),
+        end = s.EndTime.ToString("HH:mm"),
+        label = s.SittingType.ToString() + ", " + s.StartTime.ToString("h:mm tt") + " to " + s.EndTime.ToString("h:mm tt")
+    }));
+}
+<div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
+<input type="hidden" asp-for="ReservationId" />
+<input type="hidden" asp-for="RowVersion" />
+
+<div class="row">
+    <div class="col-md-3 mb-3">
+        <label for="sittingDate" class="form-label">Date</label>
+        <input type="date" id="sittingDate" class="form-control"
+               value="@(selectedSitting?.SittingDate.ToString("yyyy-MM-dd"))"
+               min="@minDate.ToString("yyyy-MM-dd")" max="@maxDate.ToString("yyyy-MM-dd")" />
+    </div>
+    <div class="col-md-3 mb-3">
+        <label asp-for="SittingId" class="form-label">Sitting</label>
+        <select asp-for="SittingId" class="form-select"><option value="">- pick a date first -</option></select>
+        <span asp-validation-for="SittingId" class="text-danger"></span>
+    </div>
+    <div class="col-md-3 mb-3">
+        <label for="startHour" class="form-label">Start time</label>
+        <input type="hidden" id="startTime" name="StartTime" value="@Model.StartTime.ToString("HH:mm")" />
+        <div class="input-group">
+            <select id="startHour" class="form-select" aria-label="Start hour" disabled><option>--</option></select>
+            <span class="input-group-text">:</span>
+            <select id="startMinute" class="form-select" aria-label="Start minute" disabled><option>--</option></select>
+        </div>
+        <span asp-validation-for="StartTime" class="text-danger"></span>
+    </div>
+    <div class="col-md-3 mb-3">
+        <label for="durationMinutes" class="form-label">Duration</label>
+        <select id="durationMinutes" name="DurationMinutes" class="form-select" disabled><option>--</option></select>
+        <span asp-validation-for="DurationMinutes" class="text-danger"></span>
+    </div>
+</div>
+<div class="row">
+    <div class="col-md-3 mb-3">
+        <label asp-for="NumberOfGuests" class="form-label"></label>
+        <input asp-for="NumberOfGuests" class="form-control" />
+        <span asp-validation-for="NumberOfGuests" class="text-danger"></span>
+    </div>
+    @if (showSource)
+    {
+        <div class="col-md-3 mb-3">
+            <label asp-for="Source" class="form-label"></label>
+            <select asp-for="Source" class="form-select" asp-items="Html.GetEnumSelectList<ReservationSource>()"></select>
+        </div>
+    }
+</div>
+
+<h2 class="h5 mt-2">Guest details</h2>
+@if (lockGuest)
+{
+    <p class="text-muted small">You are logged in as a member, so your details are filled in automatically.</p>
+}
+<div class="row">
+    <div class="col-md-6 mb-3">
+        <label asp-for="FirstName" class="form-label"></label>
+        <input asp-for="FirstName" class="form-control" readonly="@lockGuest" /><span asp-validation-for="FirstName" class="text-danger"></span>
+    </div>
+    <div class="col-md-6 mb-3">
+        <label asp-for="LastName" class="form-label"></label>
+        <input asp-for="LastName" class="form-control" readonly="@lockGuest" /><span asp-validation-for="LastName" class="text-danger"></span>
+    </div>
+</div>
+<div class="row">
+    <div class="col-md-6 mb-3">
+        <label asp-for="Email" class="form-label"></label>
+        <input asp-for="Email" class="form-control" readonly="@lockGuest" /><span asp-validation-for="Email" class="text-danger"></span>
+    </div>
+    <div class="col-md-6 mb-3">
+        <label asp-for="PhoneNumber" class="form-label"></label>
+        <input asp-for="PhoneNumber" class="form-control" readonly="@lockGuest" /><span asp-validation-for="PhoneNumber" class="text-danger"></span>
+    </div>
+</div>
+<div class="mb-3">
+    <label asp-for="SpecialRequests" class="form-label"></label>
+    <textarea asp-for="SpecialRequests" class="form-control" rows="2" placeholder="e.g. table by the window, highchair required"></textarea>
+    <span asp-validation-for="SpecialRequests" class="text-danger"></span>
+</div>
+
+<script>
+    (function () {
+        var sittings = @Html.Raw(sittingJson);
+        var isNew = @(Model.ReservationId == 0 ? "true" : "false");   // new bookings cannot use times that have already passed
+        var dateInput = document.getElementById('sittingDate');
+        var select = document.getElementById('SittingId');
+        var hidden = document.getElementById('startTime');
+        var hourSel = document.getElementById('startHour');
+        var minSel = document.getElementById('startMinute');
+        var durSel = document.getElementById('durationMinutes');
+        var durations = [30, 45, 60, 90, 120, 150, 180];
+        var durationWanted = parseInt('@Model.DurationMinutes', 10);
+        var slots = [];      // allowed start times (minutes since midnight) for the chosen sitting, every 15 minutes
+        var endMin = 0;      // when the chosen sitting ends (minutes since midnight)
+        var selected = '@Model.SittingId';
+
+        function toMin(t) { var p = t.split(':'); return parseInt(p[0], 10) * 60 + parseInt(p[1], 10); }
+        function pad(n) { return (n < 10 ? '0' : '') + n; }
+        function hourLabel(h) { return (h % 12 === 0 ? 12 : h % 12) + ' ' + (h >= 12 ? 'PM' : 'AM'); }
+        function durationLabel(m) { return m < 60 ? m + ' minutes' : (Math.floor(m / 60) + (m >= 120 ? ' hours' : ' hour') + (m % 60 ? ' ' + (m % 60) + ' min' : '')); }
+        function addOption(sel, value, text) {
+            var o = document.createElement('option');
+            o.value = value;
+            o.textContent = text;
+            sel.appendChild(o);
+        }
+
+        // Earliest start for a sitting. For a new booking made today that is the next quarter hour, never a time in the past.
+        function earliestStart(x) {
+            var from = toMin(x.start);
+            var now = new Date();
+            var todayText = now.getFullYear() + '-' + pad(now.getMonth() + 1) + '-' + pad(now.getDate());
+            if (isNew && x.date === todayText) from = Math.max(from, Math.ceil((now.getHours() * 60 + now.getMinutes()) / 15) * 15);
+            return from;
+        }
+        // A sitting is only offered if at least the shortest booking (30 minutes) still fits.
+        function hasRoom(x) { return earliestStart(x) + 30 <= toMin(x.end); }
+
+        function fill() {
+            var d = dateInput.value;
+            var matches = sittings.filter(function (x) { return x.date === d && hasRoom(x); });
+            select.innerHTML = '';
+            addOption(select, '', !d ? '- pick a date first -' : (matches.length ? '- choose a sitting -' : 'No sittings available on this date'));
+            matches.forEach(function (x) { addOption(select, x.id, x.label); });
+            if (matches.some(function (x) { return String(x.id) === selected; })) select.value = selected;
+        }
+
+        // The duration choices depend on the start time: the booking has to finish before the sitting ends.
+        function fillDurations() {
+            var start = parseInt(hourSel.value, 10) * 60 + parseInt(minSel.value, 10);
+            var longest = endMin - start;
+            var options = durations.filter(function (d) { return d <= longest; });
+            if (durationWanted <= longest && options.indexOf(durationWanted) < 0) { options.push(durationWanted); options.sort(function (a, b) { return a - b; }); }
+            durSel.innerHTML = '';
+            options.forEach(function (d) { addOption(durSel, d, durationLabel(d)); });
+            durSel.value = String(options.indexOf(durationWanted) >= 0 ? durationWanted : options[options.length - 1]);
+            durSel.disabled = false;
+        }
+
+        function commit() {
+            hidden.value = pad(parseInt(hourSel.value, 10)) + ':' + pad(parseInt(minSel.value, 10));
+            fillDurations();
+        }
+
+        function fillMinutes(wantedMinute) {
+            var h = parseInt(hourSel.value, 10);
+            var mins = slots.filter(function (m) { return Math.floor(m / 60) === h; }).map(function (m) { return m % 60; });
+            minSel.innerHTML = '';
+            mins.forEach(function (m) { addOption(minSel, m, pad(m)); });
+            minSel.value = String(mins.indexOf(wantedMinute) >= 0 ? wantedMinute : mins[0]);
+            commit();
+        }
+
+        function fillHours(wantedHour, wantedMinute) {
+            var hours = [];
+            slots.forEach(function (m) { var h = Math.floor(m / 60); if (hours.indexOf(h) < 0) hours.push(h); });
+            hourSel.innerHTML = '';
+            hours.forEach(function (h) { addOption(hourSel, h, hourLabel(h)); });
+            hourSel.value = String(wantedHour);
+            fillMinutes(wantedMinute);
+        }
+
+        function clearTimes() {
+            slots = [];
+            hourSel.innerHTML = '<option>--</option>';
+            minSel.innerHTML = '<option>--</option>';
+            durSel.innerHTML = '<option>--</option>';
+            hourSel.disabled = true;
+            minSel.disabled = true;
+            durSel.disabled = true;
+        }
+
+        // The chosen sitting decides which hours and minutes can be picked. Keep the current time if it fits, otherwise use the earliest allowed time.
+        function applyWindow() {
+            var sitting = sittings.filter(function (x) { return String(x.id) === select.value; })[0];
+            if (!sitting) { clearTimes(); return; }
+
+            var from = earliestStart(sitting);
+            endMin = toMin(sitting.end);
+            slots = [];
+            for (var m = from; m + 30 <= endMin; m += 15) slots.push(m);
+            if (slots.length === 0) { clearTimes(); return; }
+
+            var current = hidden.value ? toMin(hidden.value) : -1;
+            if (current >= from && current + 30 <= endMin && slots.indexOf(current) < 0) { slots.push(current); slots.sort(function (a, b) { return a - b; }); }
+            if (slots.indexOf(current) < 0) current = slots[0];
+
+            hourSel.disabled = false;
+            minSel.disabled = false;
+            fillHours(Math.floor(current / 60), current % 60);
+        }
+
+        dateInput.addEventListener('change', function () { selected = ''; fill(); applyWindow(); });
+        select.addEventListener('change', applyWindow);
+        hourSel.addEventListener('change', function () { fillMinutes(parseInt(minSel.value, 10)); });
+        minSel.addEventListener('change', commit);
+        durSel.addEventListener('change', function () { durationWanted = parseInt(durSel.value, 10); });
+        fill();
+        applyWindow();
+    })();
+</script>

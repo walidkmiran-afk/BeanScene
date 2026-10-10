@@ -1,0 +1,35 @@
+@model List<Sitting>
+@{ ViewData["Title"] = "Home"; }
+
+<div class="p-4 mb-4 bg-light rounded-3">
+    <h1 class="display-6">Welcome to Bean Scene</h1>
+    <p class="lead mb-3">Reserve a table for breakfast, lunch or dinner.</p>
+    <a class="btn btn-primary" asp-controller="Booking" asp-action="Index">Book a table</a>
+    @if (User.Identity?.IsAuthenticated != true)
+    {
+        <a class="btn btn-outline-secondary ms-2" asp-controller="Account" asp-action="Register">Become a member</a>
+    }
+</div>
+
+<h2 class="h4">Upcoming sittings</h2>
+@if (!Model.Any())
+{
+    <p class="text-muted">There are no open sittings at the moment.</p>
+}
+else
+{
+    <table class="table table-hover">
+        <thead><tr><th>Date</th><th>Sitting</th><th>Time</th><th></th></tr></thead>
+        <tbody>
+        @foreach (var s in Model)
+        {
+            <tr>
+                <td>@s.SittingDate.ToString("ddd d MMM yyyy")</td>
+                <td>@s.SittingType</td>
+                <td>@s.StartTime.ToString("h:mm tt") - @s.EndTime.ToString("h:mm tt")</td>
+                <td class="text-end"><a asp-controller="Booking" asp-action="Index" asp-route-sittingId="@s.SittingId">Book</a></td>
+            </tr>
+        }
+        </tbody>
+    </table>
+}

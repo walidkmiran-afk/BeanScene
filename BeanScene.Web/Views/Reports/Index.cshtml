@@ -1,0 +1,37 @@
+@model ReportsViewModel
+@{ ViewData["Title"] = "Reports"; }
+<h1 class="h3 mb-3">Reservation reports</h1>
+
+<form method="get" class="row g-2 mb-4">
+    <div class="col-auto"><label class="form-label small">From</label>
+        <input type="date" name="from" value="@Model.From.ToString("yyyy-MM-dd")" class="form-control form-control-sm" /></div>
+    <div class="col-auto"><label class="form-label small">To</label>
+        <input type="date" name="to" value="@Model.To.ToString("yyyy-MM-dd")" class="form-control form-control-sm" /></div>
+    <div class="col-auto align-self-end"><button class="btn btn-sm btn-primary">Run report</button></div>
+</form>
+
+<div class="row text-center mb-4">
+    <div class="col-6 col-md-3"><div class="card"><div class="card-body"><div class="stat">@Model.TotalReservations</div><div class="text-muted small">Reservations</div></div></div></div>
+    <div class="col-6 col-md-3"><div class="card"><div class="card-body"><div class="stat">@Model.TotalGuests</div><div class="text-muted small">Guests (not cancelled)</div></div></div></div>
+    <div class="col-6 col-md-3"><div class="card"><div class="card-body"><div class="stat">@Model.CancelledReservations</div><div class="text-muted small">Cancelled</div></div></div></div>
+    <div class="col-6 col-md-3"><div class="card"><div class="card-body"><div class="stat">@Model.UtilisationPercent%</div><div class="text-muted small">Capacity used</div></div></div></div>
+</div>
+
+<div class="row">
+@foreach (var report in Model.Reports)
+{
+    <div class="col-lg-4 mb-4">
+        <h2 class="h6">@report.Title</h2>
+        <table class="table table-sm">
+            <thead><tr><th>@report.LabelHeading</th><th class="text-end">Reservations</th><th class="text-end">Guests</th></tr></thead>
+            <tbody>
+            @foreach (var row in report.Rows)
+            {
+                <tr><td>@row.Label</td><td class="text-end">@row.Reservations</td><td class="text-end">@row.Guests</td></tr>
+            }
+            @if (!report.Rows.Any()) { <tr><td colspan="3" class="text-muted">No data</td></tr> }
+            </tbody>
+        </table>
+    </div>
+}
+</div>
