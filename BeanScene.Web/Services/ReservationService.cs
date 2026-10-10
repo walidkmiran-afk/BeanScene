@@ -345,6 +345,19 @@ public class ReservationService : IReservationService
         if (booked + input.NumberOfGuests > sitting.Capacity)
             errors.Add($"Not enough capacity: {booked} of {sitting.Capacity} guests are already booked for this sitting.");
 
+
+        // The same guest (matched by email) cannot hold two active reservations that overlap in time on one sitting.
+        var email = input.Email.Trim().ToLower();
+        var theirs = await _db.Reservations
+            .Where(r => r.SittingId == sitting.SittingId && r.Status != ReservationStatus.Cancelled
+                        && r.Customer.Email.ToLower() == email
+                        && (excludeReservationId == null || r.ReservationId != excludeReservationId))
+            .Select(r => new { r.StartTime, r.DurationMinutes })
+            .ToListAsync();
+        var newStart = finishesAt - input.DurationMinutes;
+        if (theirs.Any(o => { var s = o.StartTime.Hour * 60 + o.StartTime.Minute; return s < finishesAt && newStart < s + o.DurationMinutes; }))
+            errors.Add("This account already has a reservation for the selected time. Choose a different time or sitting, or change the existing reservation.");
+
         return errors;
     }
 }
