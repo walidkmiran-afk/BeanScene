@@ -89,7 +89,7 @@ public static class DbSeeder
         // Schedule roughly one quarter ahead (the brief says sittings are scheduled quarterly).
         // Safe to run on every start: it only adds sittings that are missing, so the schedule keeps rolling forward.
         const int daysAhead = 90;
-        var today = DateOnly.FromDateTime(DateTime.Today);
+        var today = RestaurantClock.Today;
         var last = today.AddDays(daysAhead - 1);
         var existing = (await db.Sittings
                 .Where(s => s.SittingDate >= today && s.SittingDate <= last)

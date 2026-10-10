@@ -15,8 +15,8 @@ public class ReportsController : Controller
 
     public async Task<IActionResult> Index(DateOnly? from, DateOnly? to)
     {
-        var start = from ?? DateOnly.FromDateTime(DateTime.Today).AddDays(-30);
-        var end = to ?? DateOnly.FromDateTime(DateTime.Today).AddDays(60);
+        var start = from ?? RestaurantClock.Today.AddDays(-30);
+        var end = to ?? RestaurantClock.Today.AddDays(60);
         if (end < start) (start, end) = (end, start);
         return View(await _reports.RunAsync(start, end));
     }

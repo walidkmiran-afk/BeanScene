@@ -338,7 +338,7 @@ public class ReservationService : IReservationService
             errors.Add($"The reservation would finish after the sitting ends at {sitting.EndTime:h:mm tt}. Choose an earlier start time or a shorter duration.");
 
         // New reservations cannot be made for a time that has already passed.
-        if (excludeReservationId == null && sitting.SittingDate.ToDateTime(input.StartTime) < DateTime.Now)
+        if (excludeReservationId == null && sitting.SittingDate.ToDateTime(input.StartTime) < RestaurantClock.Now)
             errors.Add("That start time has already passed. Please choose a later time.");
 
         var booked = await GuestsBookedAsync(sitting.SittingId, excludeReservationId);

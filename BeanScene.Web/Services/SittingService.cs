@@ -43,7 +43,7 @@ public class SittingService : ISittingService
 
     public async Task<List<Sitting>> GetOpenUpcomingAsync()
     {
-        var now = DateTime.Now;
+        var now = RestaurantClock.Now;
         var today = DateOnly.FromDateTime(now);
         var timeNow = TimeOnly.FromDateTime(now);
         // Sittings that have already finished today are not offered any more.

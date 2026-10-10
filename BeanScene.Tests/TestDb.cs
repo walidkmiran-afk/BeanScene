@@ -1,3 +1,4 @@
+using BeanScene.Web;
 using BeanScene.Web.Data;
 using BeanScene.Web.Models;
 using BeanScene.Web.Models.ViewModels;
@@ -15,7 +16,7 @@ public sealed class TestDb : IDisposable
     private readonly SqliteConnection _connection;
 
     public DbContextOptions<ApplicationDbContext> Options { get; }
-    public DateOnly TestDate { get; } = DateOnly.FromDateTime(DateTime.Today).AddDays(1);
+    public DateOnly TestDate { get; } = RestaurantClock.Today.AddDays(1);
     public int OpenSittingId { get; private set; }     // dinner 18:00-23:00, capacity 10
     public int ClosedSittingId { get; private set; }
     public int TableM1 { get; private set; }
