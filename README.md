@@ -37,7 +37,7 @@ Screenshots: save images in docs/screenshots/ and delete the comment markers aro
 ## Business rules
 
 - A sitting has a date, a type, opening and closing times and a capacity. Total guests booked cannot go over the capacity.
-- A reservation must start inside its sitting and finish before the sitting ends. Duration is 30 to 180 minutes, and new bookings default to 90 minutes.
+- A reservation must start inside its sitting and finish before the sitting ends. Duration is 30 to 180 minutes, and new bookings default to 45 minutes.
 - New reservations cannot be made for a time that has already passed.
 - Roles: **Manager**, **Staff** and **Member**, enforced with `[Authorize(Roles = ...)]`. Only members can register themselves. Staff accounts are created by a manager.
 - Concurrent edits are detected with a row version, so two staff members cannot silently overwrite each other.

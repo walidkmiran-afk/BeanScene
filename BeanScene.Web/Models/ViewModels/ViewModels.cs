@@ -85,7 +85,7 @@ public class ReservationInput
     public TimeOnly StartTime { get; set; } = new TimeOnly(19, 0);
 
     [Range(30, 180), Display(Name = "Duration (minutes)")]
-    public int DurationMinutes { get; set; } = 90;
+    public int DurationMinutes { get; set; } = 45;
 
     [Range(1, 100), Display(Name = "Number of guests")]
     public int NumberOfGuests { get; set; } = 2;
