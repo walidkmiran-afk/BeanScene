@@ -77,10 +77,18 @@ public class ReservationsController : Controller
 
         var input = new ReservationInput
         {
-            ReservationId = r.ReservationId, SittingId = r.SittingId, StartTime = r.StartTime,
-            DurationMinutes = r.DurationMinutes, NumberOfGuests = r.NumberOfGuests, Source = r.Source,
-            FirstName = r.Customer.FirstName, LastName = r.Customer.LastName, Email = r.Customer.Email,
-            PhoneNumber = r.Customer.PhoneNumber, SpecialRequests = r.SpecialRequests, RowVersion = r.RowVersion
+            ReservationId = r.ReservationId,
+            SittingId = r.SittingId,
+            StartTime = r.StartTime,
+            DurationMinutes = r.DurationMinutes,
+            NumberOfGuests = r.NumberOfGuests,
+            Source = r.Source,
+            FirstName = r.Customer.FirstName,
+            LastName = r.Customer.LastName,
+            Email = r.Customer.Email,
+            PhoneNumber = r.Customer.PhoneNumber,
+            SpecialRequests = r.SpecialRequests,
+            RowVersion = r.RowVersion
         };
         await LoadSittingsAsync(input.SittingId, includePast: true);
         return View(input);

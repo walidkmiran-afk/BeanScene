@@ -1,4 +1,3 @@
-using BeanScene.Web.Services;
 using BeanScene.Web.Data;
 using BeanScene.Web.Models;
 using BeanScene.Web.Models.ViewModels;
@@ -44,7 +43,7 @@ public class AccountController : Controller
         }
 
         ModelState.AddModelError(string.Empty, result.IsLockedOut
-            ? "This account is locked. Try again later."
+            ? "This account is disabled or temporarily locked. Please contact the restaurant."
             : "Invalid email or password.");
         return View(model);
     }

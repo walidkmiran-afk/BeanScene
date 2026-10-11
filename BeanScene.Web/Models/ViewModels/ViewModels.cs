@@ -204,3 +204,62 @@ public class DeleteAccountViewModel
     [Required, DataType(DataType.Password), Display(Name = "Current password")]
     public string CurrentPassword { get; set; } = string.Empty;
 }
+
+
+/// <summary>One row on the manager's Accounts page.</summary>
+public class AccountRowViewModel
+{
+    public string UserId { get; set; } = string.Empty;
+    public string FullName { get; set; } = string.Empty;
+    public string Email { get; set; } = string.Empty;
+    public string PhoneNumber { get; set; } = string.Empty;
+    public string Role { get; set; } = string.Empty;
+    public bool IsDisabled { get; set; }
+}
+
+public class CreateStaffViewModel
+{
+    [Required, StringLength(60), Display(Name = "First name")]
+    public string FirstName { get; set; } = string.Empty;
+
+    [Required, StringLength(60), Display(Name = "Last name")]
+    public string LastName { get; set; } = string.Empty;
+
+    [Required, EmailAddress, StringLength(256), Display(Name = "Email address")]
+    public string Email { get; set; } = string.Empty;
+
+    [Required, RegularExpression(@"^(?:\+61|0)[\s-]?[2-478](?:[\s-]?\d){8}$", ErrorMessage = "Enter an Australian phone number, e.g. 0412 345 678"), Display(Name = "Phone number")]
+    public string PhoneNumber { get; set; } = string.Empty;
+
+    [Required, DataType(DataType.Password), StringLength(100, MinimumLength = 8)]
+    public string Password { get; set; } = string.Empty;
+}
+
+public class EditAccountViewModel
+{
+    public string UserId { get; set; } = string.Empty;
+
+    [Required, StringLength(60), Display(Name = "First name")]
+    public string FirstName { get; set; } = string.Empty;
+
+    [Required, StringLength(60), Display(Name = "Last name")]
+    public string LastName { get; set; } = string.Empty;
+
+    [Required, EmailAddress, StringLength(256), Display(Name = "Email address")]
+    public string Email { get; set; } = string.Empty;
+
+    [Required, RegularExpression(@"^(?:\+61|0)[\s-]?[2-478](?:[\s-]?\d){8}$", ErrorMessage = "Enter an Australian phone number, e.g. 0412 345 678"), Display(Name = "Phone number")]
+    public string PhoneNumber { get; set; } = string.Empty;
+}
+
+public class ResetPasswordViewModel
+{
+    public string UserId { get; set; } = string.Empty;
+
+    [Required, DataType(DataType.Password), StringLength(100, MinimumLength = 8), Display(Name = "New password")]
+    public string NewPassword { get; set; } = string.Empty;
+
+    [DataType(DataType.Password), Display(Name = "Confirm new password")]
+    [Compare(nameof(NewPassword), ErrorMessage = "The passwords do not match.")]
+    public string ConfirmPassword { get; set; } = string.Empty;
+}
