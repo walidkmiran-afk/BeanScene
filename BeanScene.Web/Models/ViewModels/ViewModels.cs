@@ -45,7 +45,7 @@ public class SittingFormViewModel : IValidatableObject
     public SittingType SittingType { get; set; } = SittingType.Dinner;
 
     [Required, DataType(DataType.Date), Display(Name = "Date")]
-    public DateOnly SittingDate { get; set; } = DateOnly.FromDateTime(DateTime.Today);
+    public DateOnly SittingDate { get; set; } = RestaurantClock.Today;
 
     [Required, Display(Name = "Start time")]
     public TimeOnly StartTime { get; set; } = new TimeOnly(18, 0);
@@ -85,7 +85,7 @@ public class ReservationInput
     public TimeOnly StartTime { get; set; } = new TimeOnly(19, 0);
 
     [Range(30, 180), Display(Name = "Duration (minutes)")]
-    public int DurationMinutes { get; set; } = 45;
+    public int DurationMinutes { get; set; } = 90;
 
     [Range(1, 100), Display(Name = "Number of guests")]
     public int NumberOfGuests { get; set; } = 2;

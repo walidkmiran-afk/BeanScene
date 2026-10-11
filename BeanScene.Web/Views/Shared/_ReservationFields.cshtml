@@ -6,7 +6,7 @@
     // The date picker narrows the sitting list to that day. The sittings come from the same SelectList the controller built.
     var sittingList = ((SelectList)ViewBag.Sittings).Items.Cast<Sitting>().ToList();
     var selectedSitting = sittingList.FirstOrDefault(s => s.SittingId == Model.SittingId);
-    var today = DateOnly.FromDateTime(DateTime.Today);
+    var today = RestaurantClock.Today;
     var minDate = sittingList.Count > 0 ? sittingList.Min(s => s.SittingDate) : today;
     var maxDate = sittingList.Count > 0 ? sittingList.Max(s => s.SittingDate) : today;
     var sittingJson = System.Text.Json.JsonSerializer.Serialize(sittingList.Select(s => new

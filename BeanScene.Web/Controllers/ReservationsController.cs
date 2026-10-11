@@ -28,7 +28,7 @@ public class ReservationsController : Controller
         if (!criteria.From.HasValue && !criteria.To.HasValue && string.IsNullOrWhiteSpace(criteria.Name)
             && !criteria.Status.HasValue && !criteria.Source.HasValue && string.IsNullOrWhiteSpace(criteria.TableName)
             && !criteria.SittingId.HasValue)
-            criteria.From = DateOnly.FromDateTime(DateTime.Today);
+            criteria.From = RestaurantClock.Today;
 
         ViewBag.Criteria = criteria;
         return View(await _reservations.SearchAsync(criteria));
@@ -141,7 +141,7 @@ public class ReservationsController : Controller
 
     private async Task LoadSittingsAsync(int selected, bool includePast)
     {
-        var from = includePast ? DateOnly.FromDateTime(DateTime.Today).AddDays(-30) : DateOnly.FromDateTime(DateTime.Today);
+        var from = includePast ? RestaurantClock.Today.AddDays(-30) : RestaurantClock.Today;
         var items = await _sittings.ListAsync(from);
         ViewBag.Sittings = new SelectList(items.Select(i => i.Sitting).Where(s => !s.IsClosed || s.SittingId == selected),
             nameof(Sitting.SittingId), nameof(Sitting.DisplayName), selected);

@@ -17,7 +17,7 @@ public class SittingsController : Controller
     // GET /Sittings
     public async Task<IActionResult> Index(bool showPast = false)
     {
-        var from = showPast ? (DateOnly?)null : DateOnly.FromDateTime(DateTime.Today);
+        var from = showPast ? (DateOnly?)null : RestaurantClock.Today;
         ViewBag.ShowPast = showPast;
         return View(await _sittings.ListAsync(from));
     }
