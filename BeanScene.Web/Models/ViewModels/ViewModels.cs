@@ -228,8 +228,8 @@ public class CreateStaffViewModel
     [Required, EmailAddress, StringLength(256), Display(Name = "Email address")]
     public string Email { get; set; } = string.Empty;
 
-    [Required, RegularExpression(@"^(?:\+61|0)[\s-]?[2-478](?:[\s-]?\d){8}$", ErrorMessage = "Enter an Australian phone number, e.g. 0412 345 678"), Display(Name = "Phone number")]
-    public string PhoneNumber { get; set; } = string.Empty;
+    [RegularExpression(@"^(?:\+61|0)[\s-]?[2-478](?:[\s-]?\d){8}$", ErrorMessage = "Enter an Australian phone number, e.g. 0412 345 678"), Display(Name = "Phone number (optional)")]
+    public string? PhoneNumber { get; set; }
 
     [Required, DataType(DataType.Password), StringLength(100, MinimumLength = 8)]
     public string Password { get; set; } = string.Empty;
@@ -248,8 +248,8 @@ public class EditAccountViewModel
     [Required, EmailAddress, StringLength(256), Display(Name = "Email address")]
     public string Email { get; set; } = string.Empty;
 
-    [Required, RegularExpression(@"^(?:\+61|0)[\s-]?[2-478](?:[\s-]?\d){8}$", ErrorMessage = "Enter an Australian phone number, e.g. 0412 345 678"), Display(Name = "Phone number")]
-    public string PhoneNumber { get; set; } = string.Empty;
+    [RegularExpression(@"^(?:\+61|0)[\s-]?[2-478](?:[\s-]?\d){8}$", ErrorMessage = "Enter an Australian phone number, e.g. 0412 345 678"), Display(Name = "Phone number (optional)")]
+    public string? PhoneNumber { get; set; }
 }
 
 public class ResetPasswordViewModel

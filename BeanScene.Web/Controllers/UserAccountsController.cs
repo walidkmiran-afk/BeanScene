@@ -69,7 +69,7 @@ public class UserAccountsController : Controller
             return View(model);
         }
 
-        var phone = ReservationService.NormalizePhone(model.PhoneNumber);
+        var phone = ReservationService.NormalizePhone(model.PhoneNumber ?? "");
         var user = new ApplicationUser { UserName = email, Email = email, EmailConfirmed = true, PhoneNumber = phone };
         var create = await _users.CreateAsync(user, model.Password);
         if (!create.Succeeded)
@@ -147,7 +147,7 @@ public class UserAccountsController : Controller
             return View(model);
         }
 
-        var phone = ReservationService.NormalizePhone(model.PhoneNumber);
+        var phone = ReservationService.NormalizePhone(model.PhoneNumber ?? "");
 
         // The login and the guest record change together or not at all.
         await using var transaction = await _db.Database.BeginTransactionAsync();

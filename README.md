@@ -31,7 +31,7 @@ Screenshots: save images in docs/screenshots/ and delete the comment markers aro
 
 **Managers**
 - Create, edit, close and delete sittings (closed sittings stop taking bookings).
-- **Accounts** page: create staff accounts, edit a staff or member's name, phone and email, disable and re-enable logins (history is kept), and reset passwords. Manager accounts are not listed, so a manager cannot lock themselves out.
+- **Accounts** page: create staff accounts (the phone number is optional for staff), edit a staff or member's name, phone and email, disable and re-enable logins (history is kept), and reset passwords. Manager accounts are not listed, so a manager cannot lock themselves out.
 - Reports, and a REST API for reservations (GET, POST, PUT, DELETE).
 
 ## Business rules
