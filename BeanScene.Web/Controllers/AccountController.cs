@@ -1,6 +1,7 @@
 using BeanScene.Web.Data;
 using BeanScene.Web.Models;
 using BeanScene.Web.Models.ViewModels;
+using BeanScene.Web.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
@@ -88,7 +89,7 @@ public class AccountController : Controller
             }
             customer.FirstName = model.FirstName.Trim();
             customer.LastName = model.LastName.Trim();
-            customer.PhoneNumber = model.PhoneNumber.Trim();
+            customer.PhoneNumber = ReservationService.NormalizePhone(model.PhoneNumber);
             customer.UserId = user.Id;
             await _db.SaveChangesAsync();
         }

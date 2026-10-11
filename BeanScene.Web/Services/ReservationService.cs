@@ -7,6 +7,12 @@ namespace BeanScene.Web.Services;
 
 public class ReservationService : IReservationService
 {
+    /// <summary>Saves phone numbers one way: digits only, starting with 0 (so +61 412 345 678 becomes 0412345678).</summary>
+    public static string NormalizePhone(string phone)
+    {
+        var cleaned = new string(phone.Where(ch => char.IsDigit(ch) || ch == '+').ToArray());
+        return cleaned.StartsWith("+61") ? "0" + cleaned.Substring(3) : cleaned;
+    }
     private readonly ApplicationDbContext _db;
 
     public ReservationService(ApplicationDbContext db) => _db = db;
@@ -29,8 +35,11 @@ public class ReservationService : IReservationService
         if (!string.IsNullOrWhiteSpace(c.Name))
         {
             var name = c.Name.Trim();
+            var phone = NormalizePhone(name);   // 0412 345 678 and +61 412 345 678 both become 0412345678
+            var searchPhone = phone.Length > 0;
             query = query.Where(r => r.Customer.FirstName.Contains(name) || r.Customer.LastName.Contains(name)
-                                     || r.Customer.Email.Contains(name));
+                                     || r.Customer.Email.Contains(name)
+                                     || (searchPhone && r.Customer.PhoneNumber.Contains(phone)));
         }
         if (c.From.HasValue) query = query.Where(r => r.Sitting.SittingDate >= c.From.Value);
         if (c.To.HasValue) query = query.Where(r => r.Sitting.SittingDate <= c.To.Value);
@@ -122,7 +131,7 @@ public class ReservationService : IReservationService
 
         customer.FirstName = input.FirstName.Trim();
         customer.LastName = input.LastName.Trim();
-        customer.PhoneNumber = input.PhoneNumber.Trim();
+        customer.PhoneNumber = NormalizePhone(input.PhoneNumber);
         return customer;
     }
 
@@ -153,7 +162,7 @@ public class ReservationService : IReservationService
         reservation.SpecialRequests = input.SpecialRequests;
         reservation.Customer.FirstName = input.FirstName.Trim();
         reservation.Customer.LastName = input.LastName.Trim();
-        reservation.Customer.PhoneNumber = input.PhoneNumber.Trim();
+        reservation.Customer.PhoneNumber = NormalizePhone(input.PhoneNumber);
 
         try
         {
