@@ -265,4 +265,7 @@ public class AccountController : Controller
 
     [AllowAnonymous]
     public IActionResult AccessDenied() => View();
+
+    [AllowAnonymous]
+    public IActionResult ForgotPassword() => View();
 }

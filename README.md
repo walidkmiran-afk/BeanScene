@@ -87,6 +87,7 @@ Open **Test > Test Explorer** and choose **Run All**, or run `dotnet test` in th
 - The app does not send emails, so there is no "forgot password" email. A manager resets a staff or member password from the Accounts page and passes the new password on in person or by phone. Email changes are not verified by a confirmation email.
 - A disabled account that is already logged in stays logged in until its login is next checked (up to about 30 minutes).
 - It is a course project that runs locally. It is not hosted.
+- Password reset by email is not built. The Forgot password page tells users to contact the manager, who sets a new password.
 
 ## More documentation
 
