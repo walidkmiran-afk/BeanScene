@@ -173,3 +173,34 @@ public class ErrorViewModel
     public string? RequestId { get; set; }
     public bool ShowRequestId => !string.IsNullOrEmpty(RequestId);
 }
+
+
+/// <summary>Member account page: the details a member can change.</summary>
+public class AccountDetailsViewModel
+{
+    [Required, StringLength(60), Display(Name = "First name")]
+    public string FirstName { get; set; } = string.Empty;
+
+    [Required, StringLength(60), Display(Name = "Last name")]
+    public string LastName { get; set; } = string.Empty;
+
+    [Required, RegularExpression(@"^(?:\+61|0)[\s-]?[2-478](?:[\s-]?\d){8}$", ErrorMessage = "Enter an Australian phone number, e.g. 0412 345 678"), Display(Name = "Phone number")]
+    public string PhoneNumber { get; set; } = string.Empty;
+}
+
+/// <summary>Changing the login email needs the current password.</summary>
+public class ChangeEmailViewModel
+{
+    [Required, EmailAddress, StringLength(256), Display(Name = "New email address")]
+    public string NewEmail { get; set; } = string.Empty;
+
+    [Required, DataType(DataType.Password), Display(Name = "Current password")]
+    public string CurrentPassword { get; set; } = string.Empty;
+}
+
+
+public class DeleteAccountViewModel
+{
+    [Required, DataType(DataType.Password), Display(Name = "Current password")]
+    public string CurrentPassword { get; set; } = string.Empty;
+}

@@ -1,0 +1,14 @@
+﻿@model ChangeEmailViewModel
+@{ ViewData["Title"] = "Change email"; }
+<div class="row justify-content-center"><div class="col-md-8 col-lg-6">
+    <h1 class="h3 mb-3">Change email address</h1>
+    <p class="text-muted">Your email address is also your login. Your current one is <strong>@ViewBag.CurrentEmail</strong>. Your reservations stay on your account.</p>
+    <form asp-action="ChangeEmail" method="post">
+        <div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
+        <div class="mb-3"><label asp-for="NewEmail" class="form-label"></label><input asp-for="NewEmail" class="form-control" autocomplete="email" /><span asp-validation-for="NewEmail" class="text-danger"></span></div>
+        <div class="mb-3"><label asp-for="CurrentPassword" class="form-label"></label><input asp-for="CurrentPassword" class="form-control" autocomplete="current-password" /><span asp-validation-for="CurrentPassword" class="text-danger"></span></div>
+        <button class="btn btn-primary" type="submit">Change email</button>
+        <a class="btn btn-link" asp-action="Details">Cancel</a>
+    </form>
+</div></div>
+@section Scripts { <partial name="_ValidationScriptsPartial" /> }

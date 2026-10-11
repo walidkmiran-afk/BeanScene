@@ -1,0 +1,15 @@
+﻿@model DeleteAccountViewModel
+@{ ViewData["Title"] = "Delete account"; }
+<div class="row justify-content-center"><div class="col-md-8 col-lg-6">
+    <h1 class="h3 mb-3">Delete my account</h1>
+    <div class="alert alert-warning">
+        This cannot be undone. Your login is deleted, your upcoming reservations are cancelled, and your name, email and phone number are removed from your booking history.
+    </div>
+    <form asp-action="DeleteAccount" method="post" onsubmit="return confirm('Delete your account for good?');">
+        <div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
+        <div class="mb-3"><label asp-for="CurrentPassword" class="form-label"></label><input asp-for="CurrentPassword" class="form-control" autocomplete="current-password" /><span asp-validation-for="CurrentPassword" class="text-danger"></span></div>
+        <button class="btn btn-danger" type="submit">Delete my account</button>
+        <a class="btn btn-link" asp-action="Details">Cancel</a>
+    </form>
+</div></div>
+@section Scripts { <partial name="_ValidationScriptsPartial" /> }

@@ -1,0 +1,24 @@
+﻿@model AccountDetailsViewModel
+@{ ViewData["Title"] = "My account"; }
+<div class="row justify-content-center"><div class="col-md-8 col-lg-6">
+    <h1 class="h3 mb-3">My account</h1>
+    <form asp-action="Details" method="post">
+        <div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
+        <div class="row">
+            <div class="col-md-6 mb-3"><label asp-for="FirstName" class="form-label"></label><input asp-for="FirstName" class="form-control" /><span asp-validation-for="FirstName" class="text-danger"></span></div>
+            <div class="col-md-6 mb-3"><label asp-for="LastName" class="form-label"></label><input asp-for="LastName" class="form-control" /><span asp-validation-for="LastName" class="text-danger"></span></div>
+        </div>
+        <div class="mb-3"><label asp-for="PhoneNumber" class="form-label"></label><input asp-for="PhoneNumber" class="form-control" /><span asp-validation-for="PhoneNumber" class="text-danger"></span></div>
+        <div class="mb-3">
+            <label class="form-label">Email address</label>
+            <div class="input-group">
+                <input class="form-control" value="@ViewBag.Email" readonly />
+                <a class="btn btn-outline-secondary" asp-action="ChangeEmail">Change email</a>
+            </div>
+        </div>
+        <button class="btn btn-primary" type="submit">Save changes</button>
+    </form>
+        <hr class="my-4" />
+    <a class="btn btn-outline-danger" asp-action="DeleteAccount">Delete my account</a>
+</div></div>
+@section Scripts { <partial name="_ValidationScriptsPartial" /> }

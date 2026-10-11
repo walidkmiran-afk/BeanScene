@@ -1,3 +1,4 @@
+using BeanScene.Web.Services;
 using BeanScene.Web.Data;
 using BeanScene.Web.Models;
 using BeanScene.Web.Models.ViewModels;
@@ -109,6 +110,157 @@ public class AccountController : Controller
     public async Task<IActionResult> Logout()
     {
         await _signIn.SignOutAsync();
+        return RedirectToAction("Index", "Home");
+    }
+
+    // ---- Member account page ----------------------------------------------------
+
+    [HttpGet, Authorize(Roles = RoleNames.Member)]
+    public async Task<IActionResult> Details()
+    {
+        var userId = _users.GetUserId(User);
+        var customer = await _db.Customers.AsNoTracking().FirstOrDefaultAsync(c => c.UserId == userId);
+        if (customer == null) return NotFound();
+
+        ViewBag.Email = customer.Email;
+        return View(new AccountDetailsViewModel { FirstName = customer.FirstName, LastName = customer.LastName, PhoneNumber = customer.PhoneNumber });
+    }
+
+    [HttpPost, Authorize(Roles = RoleNames.Member)]
+    public async Task<IActionResult> Details(AccountDetailsViewModel model)
+    {
+        var userId = _users.GetUserId(User);
+        var customer = await _db.Customers.FirstOrDefaultAsync(c => c.UserId == userId);
+        if (customer == null) return NotFound();
+
+        ViewBag.Email = customer.Email;
+        if (!ModelState.IsValid) return View(model);
+
+        customer.FirstName = model.FirstName.Trim();
+        customer.LastName = model.LastName.Trim();
+        customer.PhoneNumber = ReservationService.NormalizePhone(model.PhoneNumber);
+        await _db.SaveChangesAsync();
+
+        var user = await _users.GetUserAsync(User);
+        if (user != null)
+        {
+            user.PhoneNumber = customer.PhoneNumber;
+            await _users.UpdateAsync(user);
+        }
+
+        TempData["Success"] = "Your details have been updated.";
+        return RedirectToAction(nameof(Details));
+    }
+
+    [HttpGet, Authorize(Roles = RoleNames.Member)]
+    public async Task<IActionResult> ChangeEmail()
+    {
+        var user = await _users.GetUserAsync(User);
+        if (user == null) return NotFound();
+
+        ViewBag.CurrentEmail = user.Email;
+        return View(new ChangeEmailViewModel());
+    }
+
+    [HttpPost, Authorize(Roles = RoleNames.Member)]
+    public async Task<IActionResult> ChangeEmail(ChangeEmailViewModel model)
+    {
+        var user = await _users.GetUserAsync(User);
+        if (user == null) return NotFound();
+
+        ViewBag.CurrentEmail = user.Email;
+        if (!ModelState.IsValid) return View(model);
+
+        if (!await _users.CheckPasswordAsync(user, model.CurrentPassword))
+        {
+            ModelState.AddModelError(nameof(model.CurrentPassword), "That password is not correct.");
+            return View(model);
+        }
+
+        // The new address must not belong to another login or to another guest record.
+        var newEmail = model.NewEmail.Trim();
+        var lower = newEmail.ToLower();
+        var other = await _users.FindByEmailAsync(newEmail);
+        var inUse = (other != null && other.Id != user.Id)
+                    || await _db.Customers.AnyAsync(c => c.Email.ToLower() == lower && c.UserId != user.Id);
+        if (inUse)
+        {
+            ModelState.AddModelError(nameof(model.NewEmail), "That email address is already in use.");
+            return View(model);
+        }
+
+        var customer = await _db.Customers.FirstOrDefaultAsync(c => c.UserId == user.Id);
+        if (customer == null) return NotFound();
+
+        // The email is also the login name, so the login and the guest record change together or not at all.
+        await using var transaction = await _db.Database.BeginTransactionAsync();
+        customer.Email = newEmail;
+        var result = await _users.SetEmailAsync(user, newEmail);
+        if (result.Succeeded) result = await _users.SetUserNameAsync(user, newEmail);
+        if (!result.Succeeded)
+        {
+            await transaction.RollbackAsync();
+            _db.ChangeTracker.Clear();
+            foreach (var error in result.Errors) ModelState.AddModelError(string.Empty, error.Description);
+            return View(model);
+        }
+        await transaction.CommitAsync();
+
+        await _signIn.RefreshSignInAsync(user);   // keep them logged in under the new email
+        TempData["Success"] = "Your email address has been changed. Use it the next time you log in.";
+        return RedirectToAction(nameof(Details));
+    }
+
+    [HttpGet, Authorize(Roles = RoleNames.Member)]
+    public IActionResult DeleteAccount() => View(new DeleteAccountViewModel());
+
+    [HttpPost, Authorize(Roles = RoleNames.Member)]
+    public async Task<IActionResult> DeleteAccount(DeleteAccountViewModel model)
+    {
+        var user = await _users.GetUserAsync(User);
+        if (user == null) return NotFound();
+        if (!ModelState.IsValid) return View(model);
+
+        if (!await _users.CheckPasswordAsync(user, model.CurrentPassword))
+        {
+            ModelState.AddModelError(nameof(model.CurrentPassword), "That password is not correct.");
+            return View(model);
+        }
+
+        var customer = await _db.Customers.FirstOrDefaultAsync(c => c.UserId == user.Id);
+
+        await using var transaction = await _db.Database.BeginTransactionAsync();
+        if (customer != null)
+        {
+            // Cancel upcoming bookings so no table is held for an account that no longer exists.
+            var today = DateOnly.FromDateTime(DateTime.Today);
+            var upcoming = await _db.Reservations.Include(r => r.Sitting)
+                .Where(r => r.CustomerId == customer.CustomerId && r.Sitting.SittingDate >= today
+                            && (r.Status == ReservationStatus.Pending || r.Status == ReservationStatus.Confirmed))
+                .ToListAsync();
+            foreach (var reservation in upcoming) reservation.Cancel();
+
+            // Keep the booking history for the restaurant's reports, but remove the personal details.
+            customer.FirstName = "Deleted";
+            customer.LastName = "Member";
+            customer.Email = $"deleted-{customer.CustomerId}@deleted.invalid";
+            customer.PhoneNumber = "0000000000";
+            customer.UserId = null;
+            await _db.SaveChangesAsync();
+        }
+
+        var result = await _users.DeleteAsync(user);
+        if (!result.Succeeded)
+        {
+            await transaction.RollbackAsync();
+            _db.ChangeTracker.Clear();
+            foreach (var error in result.Errors) ModelState.AddModelError(string.Empty, error.Description);
+            return View(model);
+        }
+        await transaction.CommitAsync();
+
+        await _signIn.SignOutAsync();
+        TempData["Success"] = "Your account has been deleted.";
         return RedirectToAction("Index", "Home");
     }
 
