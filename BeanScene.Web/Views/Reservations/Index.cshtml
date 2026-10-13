@@ -3,6 +3,7 @@
 @{
     ViewData["Title"] = "Reservations";
     var c = (ReservationSearchCriteria)ViewBag.Criteria;
+    var returnTo = Context.Request.Path.Value + Context.Request.QueryString.Value;
     var statusItems = Html.GetEnumSelectList<ReservationStatus>()
         .Select(i => new SelectListItem(i.Text, i.Value, c.Status.HasValue && i.Value == ((int)c.Status.Value).ToString())).ToList();
     var sourceItems = Html.GetEnumSelectList<ReservationSource>()
@@ -47,14 +48,75 @@ else
         {
             <tr>
                 <td>@r.ReservationId</td>
-                <td>@r.Sitting.SittingDate.ToString("ddd d MMM") @r.Sitting.SittingType</td>
+                <td>@r.Sitting.SittingDate.ToString("ddd d MMM")<br /><span class="small text-muted">@r.Sitting.SittingType</span></td>
                 <td>@r.StartTime.ToString("h:mm tt")</td>
                 <td>@r.Customer.FullName<br /><span class="small text-muted">@r.Customer.PhoneNumber</span></td>
                 <td>@r.NumberOfGuests</td>
                 <td>@r.Source</td>
                 <td>@(string.Join(", ", r.ReservationTables.Select(rt => rt.Table.TableName).OrderBy(n => n)))</td>
                 <td><span class="badge @UiHelpers.StatusBadge(r.Status)">@r.Status</span></td>
-                <td class="text-end"><a class="btn btn-sm btn-outline-primary" asp-action="Details" asp-route-id="@r.ReservationId">Open</a></td>
+                <td class="text-end">
+                    <div class="d-flex flex-wrap gap-1 justify-content-end">
+                        <button class="btn btn-sm btn-outline-secondary" type="button" data-bs-toggle="collapse" data-bs-target="#details-@r.ReservationId">Details</button>
+                        @if (r.Status is ReservationStatus.Pending or ReservationStatus.Confirmed)
+                        {
+                            <a class="btn btn-sm btn-outline-primary" asp-action="Edit" asp-route-id="@r.ReservationId">Edit</a>
+                        }
+                        @if (r.Status != ReservationStatus.Cancelled && r.Status != ReservationStatus.Completed)
+                        {
+                            <a class="btn btn-sm btn-outline-primary" asp-controller="Allocation" asp-action="Allocate" asp-route-id="@r.ReservationId">Assign tables</a>
+                        }
+                        @if (r.Status == ReservationStatus.Pending)
+                        {
+                            <form asp-action="Confirm" asp-route-id="@r.ReservationId" method="post" class="d-inline">
+                                <input type="hidden" name="returnTo" value="@returnTo" /><button class="btn btn-sm btn-primary">Confirm</button></form>
+                        }
+                        @if (r.Status is ReservationStatus.Pending or ReservationStatus.Confirmed)
+                        {
+                            <form asp-action="Seat" asp-route-id="@r.ReservationId" method="post" class="d-inline">
+                                <input type="hidden" name="returnTo" value="@returnTo" /><button class="btn btn-sm btn-info">Seat</button></form>
+                            <form asp-action="Cancel" asp-route-id="@r.ReservationId" method="post" class="d-inline">
+                                <input type="hidden" name="returnTo" value="@returnTo" /><button class="btn btn-sm btn-outline-danger">Cancel</button></form>
+                        }
+                        @if (r.Status == ReservationStatus.Seated)
+                        {
+                            <form asp-action="Complete" asp-route-id="@r.ReservationId" method="post" class="d-inline">
+                                <input type="hidden" name="returnTo" value="@returnTo" /><button class="btn btn-sm btn-success">Complete</button></form>
+                        }
+                        @if (User.IsInRole(RoleNames.Manager))
+                        {
+                            <form asp-action="Delete" asp-route-id="@r.ReservationId" method="post" class="d-inline"
+                                  onsubmit="return confirm('Delete this reservation permanently?');">
+                                <button class="btn btn-sm btn-outline-secondary">Delete</button></form>
+                        }
+                    </div>
+                </td>
+            </tr>
+            <tr>
+                <td colspan="9" class="p-0 border-0">
+                    <div class="collapse" id="details-@r.ReservationId">
+                        <div class="card card-body bg-light my-2">
+                            <dl class="row mb-0">
+                                <dt class="col-sm-3">Sitting</dt><dd class="col-sm-9">@r.Sitting.DisplayName</dd>
+                                <dt class="col-sm-3">Time</dt><dd class="col-sm-9">@r.StartTime.ToString("h:mm tt") to @r.EndTime.ToString("h:mm tt") (@r.DurationMinutes min)</dd>
+                                <dt class="col-sm-3">Guests</dt><dd class="col-sm-9">@r.NumberOfGuests</dd>
+                                <dt class="col-sm-3">Source</dt><dd class="col-sm-9">@r.Source</dd>
+                                <dt class="col-sm-3">Guest</dt><dd class="col-sm-9">@r.Customer.FullName</dd>
+                                <dt class="col-sm-3">Email</dt><dd class="col-sm-9">@r.Customer.Email</dd>
+                                <dt class="col-sm-3">Phone</dt><dd class="col-sm-9">@r.Customer.PhoneNumber</dd>
+                                <dt class="col-sm-3">Notes</dt><dd class="col-sm-9">@(string.IsNullOrWhiteSpace(r.SpecialRequests) ? "-" : r.SpecialRequests)</dd>
+                                <dt class="col-sm-3">Tables</dt>
+                                <dd class="col-sm-9">
+                                    @if (r.ReservationTables.Any())
+                                    {
+                                        @(string.Join(", ", r.ReservationTables.Select(rt => rt.Table.TableName + " (" + rt.Table.Area.AreaName + ")").OrderBy(n => n)))
+                                    }
+                                    else { <span class="text-muted">None assigned</span> }
+                                </dd>
+                            </dl>
+                        </div>
+                    </div>
+                </td>
             </tr>
         }
         </tbody>

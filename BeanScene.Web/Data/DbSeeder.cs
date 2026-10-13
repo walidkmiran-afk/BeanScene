@@ -19,6 +19,7 @@ public static class DbSeeder
 
         await SeedRolesAsync(sp.GetRequiredService<RoleManager<ApplicationRole>>());
         await SeedAreasAndTablesAsync(db);
+        await SeedStoreHoursAsync(db);
 
         var password = config["Seed:Password"] ?? "BeanScene!2026";
         var userManager = sp.GetRequiredService<UserManager<ApplicationUser>>();
@@ -82,6 +83,22 @@ public static class DbSeeder
         }
     }
 
+    /// <summary>Starting weekly store hours. Only runs when the table is empty. After that the manager edits them.</summary>
+    private static async Task SeedStoreHoursAsync(ApplicationDbContext db)
+    {
+        if (await db.StoreHours.AnyAsync()) return;
+
+        var standard = new (SittingType Type, TimeOnly Start, TimeOnly End)[]
+        {
+            (SittingType.Breakfast, new TimeOnly(7, 0), new TimeOnly(11, 0)),
+            (SittingType.Lunch, new TimeOnly(12, 0), new TimeOnly(15, 0)),
+            (SittingType.Dinner, new TimeOnly(18, 0), new TimeOnly(23, 0))
+        };
+        foreach (var day in Enum.GetValues<DayOfWeek>())
+            foreach (var (type, start, end) in standard)
+                db.StoreHours.Add(new StoreHour { DayOfWeek = day, SittingType = type, IsOpen = true, StartTime = start, EndTime = end, Capacity = 40 });
+        await db.SaveChangesAsync();
+    }
     private static async Task SeedSittingsAndReservationsAsync(ApplicationDbContext db)
     {
         var firstRun = !await db.Sittings.AnyAsync();
@@ -98,15 +115,23 @@ public static class DbSeeder
             .Select(s => (s.SittingDate, s.SittingType))
             .ToHashSet();
 
+        var hours = await db.StoreHours.AsNoTracking().ToListAsync();
+
         for (var d = 0; d < daysAhead; d++)
         {
             var date = today.AddDays(d);
-            if (!existing.Contains((date, SittingType.Breakfast)))
-                db.Sittings.Add(new Sitting { SittingType = SittingType.Breakfast, SittingDate = date, StartTime = new TimeOnly(7, 0), EndTime = new TimeOnly(11, 0), Capacity = 40 });
-            if (!existing.Contains((date, SittingType.Lunch)))
-                db.Sittings.Add(new Sitting { SittingType = SittingType.Lunch, SittingDate = date, StartTime = new TimeOnly(12, 0), EndTime = new TimeOnly(15, 0), Capacity = 40 });
-            if (!existing.Contains((date, SittingType.Dinner)))
-                db.Sittings.Add(new Sitting { SittingType = SittingType.Dinner, SittingDate = date, StartTime = new TimeOnly(18, 0), EndTime = new TimeOnly(23, 0), Capacity = 40 });
+            foreach (var hour in hours.Where(h => h.DayOfWeek == date.DayOfWeek && h.IsOpen))
+            {
+                if (existing.Contains((date, hour.SittingType))) continue;
+                db.Sittings.Add(new Sitting
+                {
+                    SittingType = hour.SittingType,
+                    SittingDate = date,
+                    StartTime = hour.StartTime,
+                    EndTime = hour.EndTime,
+                    Capacity = hour.Capacity
+                });
+            }
         }
         await db.SaveChangesAsync();
 

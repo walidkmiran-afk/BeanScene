@@ -34,13 +34,6 @@ public class ReservationsController : Controller
         return View(await _reservations.SearchAsync(criteria));
     }
 
-    // GET /Reservations/Details/5
-    public async Task<IActionResult> Details(int id)
-    {
-        var r = await _reservations.GetAsync(id);
-        return r == null ? NotFound() : View(r);
-    }
-
     // GET /Reservations/Create
     [HttpGet]
     public async Task<IActionResult> Create(int? sittingId)
@@ -60,7 +53,7 @@ public class ReservationsController : Controller
             if (result.Succeeded)
             {
                 TempData["Success"] = "Reservation created (Pending). Assign tables when ready.";
-                return RedirectToAction(nameof(Details), new { id = result.Value!.ReservationId });
+                return RedirectToAction(nameof(Index));
             }
             foreach (var e in result.Errors) ModelState.AddModelError(string.Empty, e);
         }
@@ -106,7 +99,7 @@ public class ReservationsController : Controller
             if (result.Succeeded)
             {
                 TempData["Success"] = "Reservation updated.";
-                return RedirectToAction(nameof(Details), new { id });
+                return RedirectToAction(nameof(Index));
             }
             foreach (var e in result.Errors) ModelState.AddModelError(string.Empty, e);
         }
@@ -126,7 +119,7 @@ public class ReservationsController : Controller
             result.Succeeded ? $"Reservation is now {target}." : string.Join(" ", result.Errors);
 
         if (!string.IsNullOrEmpty(returnTo) && Url.IsLocalUrl(returnTo)) return LocalRedirect(returnTo);
-        return RedirectToAction(nameof(Details), new { id });
+        return RedirectToAction(nameof(Index));
     }
 
     // POST /Reservations/Delete/5 (Manager only)

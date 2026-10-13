@@ -15,7 +15,7 @@
 {
     if (found != null)
     {
-        <div class="alert alert-info">Found: <a asp-action="Details" asp-route-id="@found.ReservationId">#@found.ReservationId @found.Customer.FullName</a>
+        <div class="alert alert-info">Found: <a asp-action="Index" asp-route-Name="@found.Customer.PhoneNumber" asp-route-From="@found.Sitting.SittingDate.ToString("yyyy-MM-dd")" asp-route-To="@found.Sitting.SittingDate.ToString("yyyy-MM-dd")">#@found.ReservationId @found.Customer.FullName</a>
             - @found.Sitting.SittingDate.ToString("ddd d MMM") @found.Sitting.SittingType</div>
     }
     else
@@ -46,7 +46,7 @@ else
                         <input type="hidden" name="returnTo" value="@Url.Action("FollowUp")" /><button class="btn btn-sm btn-primary">Confirm</button></form>
                     <form asp-action="Cancel" asp-route-id="@r.ReservationId" method="post" class="d-inline">
                         <input type="hidden" name="returnTo" value="@Url.Action("FollowUp")" /><button class="btn btn-sm btn-outline-danger">Cancel</button></form>
-                    <a class="btn btn-sm btn-outline-secondary" asp-action="Details" asp-route-id="@r.ReservationId">Open</a>
+                    <a class="btn btn-sm btn-outline-secondary" asp-action="Index" asp-route-Name="@r.Customer.PhoneNumber" asp-route-From="@r.Sitting.SittingDate.ToString("yyyy-MM-dd")" asp-route-To="@r.Sitting.SittingDate.ToString("yyyy-MM-dd")">Open</a>
                 </td>
             </tr>
         }

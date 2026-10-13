@@ -1,4 +1,9 @@
 @model SittingFormViewModel
+@using Microsoft.EntityFrameworkCore
+@inject BeanScene.Web.Data.ApplicationDbContext Db
+@{
+    var hours = Db.StoreHours.AsNoTracking().ToList();
+}
 <div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
 <input type="hidden" asp-for="SittingId" />
 <input type="hidden" asp-for="RowVersion" />
@@ -26,3 +31,30 @@
         <select asp-for="ClosedReason" class="form-select" asp-items="Html.GetEnumSelectList<ClosedReason>()"></select>
         <span asp-validation-for="ClosedReason" class="text-danger"></span></div>
 </div>
+<script>
+        (function () {
+            var isNew = @(Model.SittingId == 0 ? "true" : "false");
+            if (!isNew) return;
+            var type = document.getElementById("SittingType");
+            var date = document.querySelector("input[name=SittingDate]");
+            var start = document.querySelector("input[name=StartTime]");
+            var end = document.querySelector("input[name=EndTime]");
+            var capacity = document.querySelector("input[name=Capacity]");
+            // key = weekday number (0 = Sunday) followed by the sitting type
+            var hours = {
+    @foreach (var h in hours)
+    {
+                    <text>"@((int)h.DayOfWeek)@(h.SittingType)": ["@(h.StartTime.ToString("HH:mm"))", "@(h.EndTime.ToString("HH:mm"))", @h.Capacity],</text>
+    }
+            };
+            function apply() {
+                if (!date.value) return;
+                var day = new Date(date.value + "T00:00:00").getDay();
+                var h = hours[day + type.options[type.selectedIndex].text];
+                if (h) { start.value = h[0]; end.value = h[1]; capacity.value = h[2]; }
+            }
+            type.addEventListener("change", apply);
+            date.addEventListener("change", apply);
+            if (@(Context.Request.Method == "GET" ? "true" : "false")) apply();
+        })();
+</script>

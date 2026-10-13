@@ -35,7 +35,7 @@ public class AllocationController : Controller
         if (result.Succeeded)
         {
             TempData["Success"] = "Tables assigned.";
-            return RedirectToAction("Details", "Reservations", new { id });
+            return RedirectToAction("Index", "Reservations");
         }
 
         foreach (var e in result.Errors) ModelState.AddModelError(string.Empty, e);

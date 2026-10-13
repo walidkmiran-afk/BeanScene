@@ -117,15 +117,23 @@ public class ReservationService : IReservationService
         if (memberUserId != null)
             customer = await _db.Customers.FirstOrDefaultAsync(c => c.UserId == memberUserId);
 
+        var email = (input.Email ?? "").Trim().ToLower();
+        var phone = NormalizePhone(input.PhoneNumber);
+        var first = input.FirstName.Trim();
+        var last = input.LastName.Trim();
+
         if (customer == null)
         {
-            var email = input.Email.Trim().ToLower();
-            customer = await _db.Customers.FirstOrDefaultAsync(c => c.Email.ToLower() == email);
+            if (email != "")
+                customer = await _db.Customers.FirstOrDefaultAsync(c => c.Email.ToLower() == email);
+            else
+                customer = await _db.Customers.FirstOrDefaultAsync(c => c.Email == ""
+                    && c.PhoneNumber == phone && c.FirstName == first && c.LastName == last);
         }
 
         if (customer == null)
         {
-            customer = new Customer { Email = input.Email.Trim() };
+            customer = new Customer { Email = email };
             _db.Customers.Add(customer);
         }
 
@@ -356,10 +364,11 @@ public class ReservationService : IReservationService
 
 
         // The same guest (matched by email) cannot hold two active reservations that overlap in time on one sitting.
-        var email = input.Email.Trim().ToLower();
+        var email = (input.Email ?? "").Trim().ToLower();
+        var phone = NormalizePhone(input.PhoneNumber);
         var theirs = await _db.Reservations
             .Where(r => r.SittingId == sitting.SittingId && r.Status != ReservationStatus.Cancelled
-                        && r.Customer.Email.ToLower() == email
+                        && (email != "" ? r.Customer.Email.ToLower() == email : r.Customer.PhoneNumber == phone)
                         && (excludeReservationId == null || r.ReservationId != excludeReservationId))
             .Select(r => new { r.StartTime, r.DurationMinutes })
             .ToListAsync();

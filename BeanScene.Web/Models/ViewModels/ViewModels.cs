@@ -102,8 +102,8 @@ public class ReservationInput
     [Required, StringLength(60), Display(Name = "Last name")]
     public string LastName { get; set; } = string.Empty;
 
-    [Required, EmailAddress, Display(Name = "Email")]
-    public string Email { get; set; } = string.Empty;
+    [EmailAddress, Display(Name = "Email (optional)")]
+    public string? Email { get; set; }
 
     [Required, RegularExpression(@"^(?:\+61|0)[\s-]?[2-478](?:[\s-]?\d){8}$", ErrorMessage = "Enter an Australian phone number, e.g. 0412 345 678"), Display(Name = "Phone")]
     public string PhoneNumber { get; set; } = string.Empty;

@@ -331,6 +331,52 @@ namespace BeanScene.Web.Migrations
                     b.ToTable("Sittings");
                 });
 
+            modelBuilder.Entity("BeanScene.Web.Models.StoreHour", b =>
+                {
+                    b.Property<int>("StoreHourId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("StoreHourId"));
+
+                    b.Property<int>("Capacity")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("DayOfWeek")
+                        .HasColumnType("int");
+
+                    b.Property<TimeOnly>("EndTime")
+                        .HasColumnType("time");
+
+                    b.Property<bool>("IsOpen")
+                        .HasColumnType("bit");
+
+                    b.Property<Guid>("RowVersion")
+                        .IsConcurrencyToken()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("SittingType")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<TimeOnly>("StartTime")
+                        .HasColumnType("time");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("StoreHourId");
+
+                    b.HasIndex("DayOfWeek", "SittingType")
+                        .IsUnique();
+
+                    b.ToTable("StoreHours");
+                });
+
             modelBuilder.Entity("BeanScene.Web.Models.Table", b =>
                 {
                     b.Property<int>("TableId")

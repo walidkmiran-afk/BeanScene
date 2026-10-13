@@ -7,6 +7,6 @@
 <form asp-action="Edit" asp-route-id="@Model.ReservationId" method="post">
     <partial name="_ReservationFields" model="Model" view-data="fieldOptions" />
     <button class="btn btn-primary" type="submit">Save changes</button>
-    <a class="btn btn-link" asp-action="Details" asp-route-id="@Model.ReservationId">Cancel</a>
+    <a class="btn btn-link" asp-action="Index">Cancel</a>
 </form>
 @section Scripts { <partial name="_ValidationScriptsPartial" /> }

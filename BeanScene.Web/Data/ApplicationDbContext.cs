@@ -11,6 +11,7 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser, Applicati
     public DbSet<Area> Areas => Set<Area>();
     public DbSet<Table> Tables => Set<Table>();
     public DbSet<Sitting> Sittings => Set<Sitting>();
+    public DbSet<StoreHour> StoreHours => Set<StoreHour>();
     public DbSet<Customer> Customers => Set<Customer>();
     public DbSet<Reservation> Reservations => Set<Reservation>();
     public DbSet<ReservationTable> ReservationTables => Set<ReservationTable>();
@@ -40,6 +41,12 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser, Applicati
             e.HasIndex(s => new { s.SittingDate, s.SittingType });
             e.HasMany(s => s.Reservations).WithOne(r => r.Sitting).HasForeignKey(r => r.SittingId)
                 .OnDelete(DeleteBehavior.Restrict);
+        });
+        
+        builder.Entity<StoreHour>(e =>
+        {
+            e.Property(h => h.SittingType).HasConversion<string>().HasMaxLength(20);
+            e.HasIndex(h => new { h.DayOfWeek, h.SittingType }).IsUnique();
         });
 
         // ---- Customer (one) -> Reservations (many) ----
