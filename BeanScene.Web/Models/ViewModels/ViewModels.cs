@@ -34,6 +34,10 @@ public class RegisterViewModel
     [DataType(DataType.Password), Display(Name = "Confirm password")]
     [Compare(nameof(Password), ErrorMessage = "The passwords do not match.")]
     public string ConfirmPassword { get; set; } = string.Empty;
+
+    [Range(typeof(bool), "true", "true", ErrorMessage = "You must tick this box to register.")]
+    [Display(Name = "I understand this is a demonstration website and I'm not using my real personal details.")]
+    public bool AcceptDemoNotice { get; set; }
 }
 
 /// <summary>Create / edit form for a Sitting.</summary>
@@ -225,8 +229,9 @@ public class CreateStaffViewModel
     [Required, StringLength(60), Display(Name = "Last name")]
     public string LastName { get; set; } = string.Empty;
 
-    [Required, EmailAddress, StringLength(256), Display(Name = "Email address")]
-    public string Email { get; set; } = string.Empty;
+    [Required, StringLength(40, MinimumLength = 3), Display(Name = "Username")]
+    [RegularExpression(@"^[A-Za-z0-9]+(\.[A-Za-z0-9]+)*$", ErrorMessage = "Use letters and numbers only, with single dots between words, e.g. sam.lee")]
+    public string Username { get; set; } = string.Empty;
 
     [RegularExpression(@"^(?:\+61|0)[\s-]?[2-478](?:[\s-]?\d){8}$", ErrorMessage = "Enter an Australian phone number, e.g. 0412 345 678"), Display(Name = "Phone number (optional)")]
     public string? PhoneNumber { get; set; }

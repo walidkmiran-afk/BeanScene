@@ -1,22 +1,38 @@
 @model RegisterViewModel
-@{ ViewData["Title"] = "Register"; }
-<div class="row justify-content-center"><div class="col-md-8 col-lg-6">
-    <h1 class="h3 mb-3">Register as a member</h1>
-    <p class="text-muted">Use a real email address. Members can view their reservations and their details are filled in automatically when they book online.</p>
-    <form asp-action="Register" method="post">
-        <div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
-        <div class="row">
-            <div class="col-md-6 mb-3"><label asp-for="FirstName" class="form-label"></label><input asp-for="FirstName" class="form-control" /><span asp-validation-for="FirstName" class="text-danger"></span></div>
-            <div class="col-md-6 mb-3"><label asp-for="LastName" class="form-label"></label><input asp-for="LastName" class="form-control" /><span asp-validation-for="LastName" class="text-danger"></span></div>
-        </div>
-        <div class="mb-3"><label asp-for="Email" class="form-label"></label><input asp-for="Email" class="form-control" autocomplete="username" /><span asp-validation-for="Email" class="text-danger"></span></div>
-        <div class="mb-3"><label asp-for="PhoneNumber" class="form-label"></label><input asp-for="PhoneNumber" class="form-control" /><span asp-validation-for="PhoneNumber" class="text-danger"></span></div>
-        <div class="row">
-            <div class="col-md-6 mb-3"><label asp-for="Password" class="form-label"></label><input asp-for="Password" class="form-control" autocomplete="new-password" /><span asp-validation-for="Password" class="text-danger"></span></div>
-            <div class="col-md-6 mb-3"><label asp-for="ConfirmPassword" class="form-label"></label><input asp-for="ConfirmPassword" class="form-control" autocomplete="new-password" /><span asp-validation-for="ConfirmPassword" class="text-danger"></span></div>
-        </div>
-        <div class="form-text mb-3">At least 8 characters with an uppercase letter, a digit and a symbol.</div>
-        <button class="btn btn-primary" type="submit">Register</button>
-    </form>
-</div></div>
-@section Scripts { <partial name="_ValidationScriptsPartial" /> }
+@{
+    ViewData["Title"] = "Register";
+}
+<div class="row justify-content-center">
+    <div class="col-md-8 col-lg-6">
+        <h1 class="h3 mb-3">Register as a member</h1>
+        <p class="text-muted">Members can view their reservations and their details are filled in automatically when they book online.</p>
+        <form asp-action="Register" method="post">
+            <div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
+            <div class="row">
+                <div class="col-md-6 mb-3"><label asp-for="FirstName" class="form-label"></label><input asp-for="FirstName" class="form-control" /><span asp-validation-for="FirstName" class="text-danger"></span></div>
+                <div class="col-md-6 mb-3"><label asp-for="LastName" class="form-label"></label><input asp-for="LastName" class="form-control" /><span asp-validation-for="LastName" class="text-danger"></span></div>
+            </div>
+            <div class="mb-3"><label asp-for="Email" class="form-label"></label><input asp-for="Email" class="form-control" autocomplete="username" /><span asp-validation-for="Email" class="text-danger"></span></div>
+            <div class="mb-3"><label asp-for="PhoneNumber" class="form-label"></label><input asp-for="PhoneNumber" class="form-control" /><span asp-validation-for="PhoneNumber" class="text-danger"></span></div>
+            <div class="row">
+                <div class="col-md-6 mb-3"><label asp-for="Password" class="form-label"></label><input asp-for="Password" class="form-control" autocomplete="new-password" /><span asp-validation-for="Password" class="text-danger"></span></div>
+                <div class="col-md-6 mb-3"><label asp-for="ConfirmPassword" class="form-label"></label><input asp-for="ConfirmPassword" class="form-control" autocomplete="new-password" /><span asp-validation-for="ConfirmPassword" class="text-danger"></span></div>
+            </div>
+            <div class="form-text mb-3">At least 8 characters with an uppercase letter, a digit and a symbol.</div>
+            <div class="alert alert-warning">
+                <strong>Demonstration website.</strong> Bean Scene is a demonstration project built for a TAFE NSW course. It isn't a real restaurant, and no real bookings are made. Please don't enter real personal information. Use a made-up name, an email address and phone number that aren't yours, and a password you don't use anywhere else. Information entered here can be seen by the developer and may be deleted at any time.
+            </div>
+            <div class="form-check mb-3">
+                <input type="checkbox" class="form-check-input" id="AcceptDemoNotice" name="AcceptDemoNotice" value="true"
+                       data-rule-required="true" data-msg-required="You must tick this box to register." />
+                <input type="hidden" name="AcceptDemoNotice" value="false" />
+                <label class="form-check-label" for="AcceptDemoNotice">I understand this is a demonstration website and I'm not using my real personal details.</label>
+                <span class="text-danger d-block" data-valmsg-for="AcceptDemoNotice" data-valmsg-replace="true"></span>
+            </div>
+            <button class="btn btn-primary" type="submit">Register</button>
+        </form>
+    </div>
+</div>
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

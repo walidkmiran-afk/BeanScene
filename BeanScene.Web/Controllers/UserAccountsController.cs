@@ -61,11 +61,11 @@ public class UserAccountsController : Controller
     {
         if (!ModelState.IsValid) return View(model);
 
-        var email = model.Email.Trim();
+        var email = model.Username.Trim().ToLower() + "@beanscene.test";
         var lower = email.ToLower();
         if (await _db.Customers.AnyAsync(c => c.Email.ToLower() == lower) || await _users.FindByEmailAsync(email) != null)
         {
-            ModelState.AddModelError(nameof(model.Email), "That email address is already in use.");
+            ModelState.AddModelError(nameof(model.Username), "That username is already in use.");
             return View(model);
         }
 
@@ -100,7 +100,7 @@ public class UserAccountsController : Controller
             return View(model);
         }
 
-        TempData["Success"] = $"Staff account created for {email}.";
+        TempData["Success"] = $"Staff account created. Login: {email}";
         return RedirectToAction(nameof(Index));
     }
 

@@ -19,6 +19,8 @@ Screenshots: save images in docs/screenshots/ and delete the comment markers aro
 - Book a table by picking a date, a sitting (Breakfast, Lunch or Dinner), a start time, a duration and the number of guests.
 - The form only offers valid choices: start times stay inside the sitting, a booking must finish before the sitting ends, and times that have already passed are blocked.
 - Register as a member so your details are filled in automatically, then view and cancel your own reservations.
+- Registration shows a demonstration-website notice and needs a tick to confirm you aren't using real personal details.
+
 - **My account** page: update your name and phone number, change your email address (needs your current password), or delete your account. Deleting cancels upcoming bookings and removes your personal details from your booking history.
 - Australian phone number validation (`0412 345 678`, `02 9876 5432` or `+61` format). Numbers are saved in one format (`0412345678`).
 - One guest cannot hold two overlapping bookings on the same sitting.
@@ -31,7 +33,7 @@ Screenshots: save images in docs/screenshots/ and delete the comment markers aro
 
 **Managers**
 - Create, edit, close and delete sittings (closed sittings stop taking bookings).
-- **Accounts** page: create staff accounts (the phone number is optional for staff), edit a staff or member's name, phone and email, disable and re-enable logins (history is kept), and reset passwords. Manager accounts are not listed, so a manager cannot lock themselves out.
+- **Accounts** page: create staff accounts (a username and password, with the login set to `username@beanscene.test`, and an optional phone number), edit a staff or member's name, phone and email, disable and re-enable logins (history is kept), and reset passwords. Manager accounts are not listed, so a manager cannot lock themselves out.
 - Reports, and a REST API for reservations (GET, POST, PUT, DELETE).
 
 ## Business rules
@@ -87,7 +89,7 @@ Open **Test > Test Explorer** and choose **Run All**, or run `dotnet test` in th
 - The app does not send emails, so there is no "forgot password" email. A manager resets a staff or member password from the Accounts page and passes the new password on in person or by phone. Email changes are not verified by a confirmation email.
 - A disabled account that is already logged in stays logged in until its login is next checked (up to about 30 minutes).
 - It is a course project that runs locally. It is not hosted.
-- Password reset by email is not built. The Forgot password page tells users to contact the manager, who sets a new password.
+- The login page has a "Forgot your password?" link, but it only opens an under-construction page that tells users to contact the manager.
 
 ## More documentation
 
