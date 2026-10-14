@@ -220,6 +220,9 @@ namespace BeanScene.Web.Migrations
                     b.Property<int>("NumberOfGuests")
                         .HasColumnType("int");
 
+                    b.Property<int?>("OriginalSittingType")
+                        .HasColumnType("int");
+
                     b.Property<Guid>("RowVersion")
                         .IsConcurrencyToken()
                         .HasColumnType("uniqueidentifier");
@@ -299,6 +302,9 @@ namespace BeanScene.Web.Migrations
                         .HasColumnType("time");
 
                     b.Property<bool>("IsClosed")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IsCustomised")
                         .HasColumnType("bit");
 
                     b.Property<Guid>("RowVersion")

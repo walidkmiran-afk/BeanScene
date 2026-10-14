@@ -18,6 +18,8 @@ public class Sitting : BaseEntity
 
     public bool IsClosed { get; set; }
 
+    public bool IsCustomised { get; set; }
+
     public virtual ICollection<Reservation> Reservations { get; set; } = new List<Reservation>();
 
     [NotMapped]

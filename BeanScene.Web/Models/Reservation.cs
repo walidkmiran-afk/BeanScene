@@ -32,6 +32,8 @@ public class Reservation : BaseEntity
     [StringLength(500)]
     public string? SpecialRequests { get; set; }
 
+    public SittingType? OriginalSittingType { get; set; }
+
     public virtual ICollection<ReservationTable> ReservationTables { get; set; } = new List<ReservationTable>();
 
     [NotMapped] public int StartMinutes => StartTime.Hour * 60 + StartTime.Minute;
