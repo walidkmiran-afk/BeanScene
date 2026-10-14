@@ -222,9 +222,13 @@ public class ReservationService : IReservationService
 
     public async Task<OperationResult> ChangeStatusAsync(int reservationId, ReservationStatus target)
     {
-        var reservation = await _db.Reservations.Include(r => r.ReservationTables)
+        var reservation = await _db.Reservations.Include(r => r.ReservationTables).Include(r => r.Sitting)
             .FirstOrDefaultAsync(r => r.ReservationId == reservationId);
         if (reservation == null) return OperationResult.Fail("Reservation not found.");
+
+        // A booking whose day has passed cannot be confirmed or seated. This is worked out from the date; nothing is stored.
+        if ((target is ReservationStatus.Confirmed or ReservationStatus.Seated) && reservation.Sitting.SittingDate < RestaurantClock.Today)
+            return OperationResult.Fail("This booking is for a day that has passed, so it can't be confirmed or seated. You can cancel it.");
 
         try
         {
@@ -295,7 +299,7 @@ public class ReservationService : IReservationService
         await using var transaction = await _db.Database.BeginTransactionAsync();
         try
         {
-            var reservation = await _db.Reservations.Include(r => r.ReservationTables)
+            var reservation = await _db.Reservations.Include(r => r.ReservationTables).Include(r => r.Sitting)
                 .FirstOrDefaultAsync(r => r.ReservationId == reservationId);
             if (reservation == null)
             {
@@ -306,6 +310,11 @@ public class ReservationService : IReservationService
             {
                 await transaction.RollbackAsync();
                 return OperationResult.Fail($"Tables cannot be assigned to a {reservation.Status} reservation.");
+            }
+            if (reservation.Sitting.SittingDate < RestaurantClock.Today)
+            {
+                await transaction.RollbackAsync();
+                return OperationResult.Fail("This booking is for a day that has passed, so tables can't be assigned. You can cancel it.");
             }
 
             var tables = await _db.Tables.Where(t => wanted.Contains(t.TableId)).ToListAsync();

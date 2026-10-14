@@ -1,5 +1,6 @@
 @using Microsoft.AspNetCore.Mvc.Rendering
 @using BeanScene.Web.Data
+@using BeanScene.Web.Services
 @using Microsoft.EntityFrameworkCore
 @inject ApplicationDbContext Db
 @model List<Reservation>
@@ -45,6 +46,9 @@ else
         <tbody>
         @foreach (var r in Model)
         {
+            // Still Pending or Confirmed after its day has passed. Worked out from the date each time; nothing is stored.
+            var isPast = r.Sitting.SittingDate < RestaurantClock.Today
+                         && (r.Status == ReservationStatus.Pending || r.Status == ReservationStatus.Confirmed);
             var actions = new BookingActionsModel
             {
                 ReservationId = r.ReservationId,
@@ -65,7 +69,8 @@ else
                 Areas = areas,
                 ReturnUrl = returnTo,
                 ColSpan = 8,
-                CanDelete = isManager
+                CanDelete = isManager,
+                IsPast = isPast
             };
 
             // A dark bar when a new day starts, and a light bar when a new sitting starts.
@@ -94,7 +99,17 @@ else
                 <td>@r.NumberOfGuests</td>
                 <td class="d-none d-md-table-cell">@r.Source</td>
                 <td>@(r.ReservationTables.Any() ? string.Join(", ", r.ReservationTables.Select(rt => rt.Table.TableName).OrderBy(n => n)) : "-")</td>
-                <td><span class="badge @UiHelpers.StatusBadge(r.Status)">@r.Status</span></td>
+                <td>
+                    @if (isPast)
+                    {
+                        <span class="badge bg-secondary">Past</span>
+                        <div class="small text-muted">was @r.Status</div>
+                    }
+                    else
+                    {
+                        <span class="badge @UiHelpers.StatusBadge(r.Status)">@r.Status</span>
+                    }
+                </td>
             </tr>
             @if (!string.IsNullOrWhiteSpace(r.SpecialRequests))
             {

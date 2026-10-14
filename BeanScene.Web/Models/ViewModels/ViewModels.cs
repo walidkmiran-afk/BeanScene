@@ -2,6 +2,13 @@ using System.ComponentModel.DataAnnotations;
 
 namespace BeanScene.Web.Models.ViewModels;
 
+/// <summary>One email rule for every form, so a made-up address like name@test is refused everywhere.</summary>
+public static class EmailRules
+{
+    public const string Pattern = @"^[A-Za-z0-9]+([._%+\-][A-Za-z0-9]+)*@[A-Za-z0-9]+(-[A-Za-z0-9]+)*(\.[A-Za-z0-9]+(-[A-Za-z0-9]+)*)*\.[A-Za-z]{2,}$";
+    public const string Message = "Enter a real email address, e.g. name@example.com";
+}
+
 public class LoginViewModel
 {
     [Required, EmailAddress]
@@ -22,7 +29,7 @@ public class RegisterViewModel
     [Required, StringLength(60), Display(Name = "Last name")]
     public string LastName { get; set; } = string.Empty;
 
-    [Required, EmailAddress, Display(Name = "Email address")]
+    [Required, StringLength(256), RegularExpression(EmailRules.Pattern, ErrorMessage = EmailRules.Message), Display(Name = "Email address")]
     public string Email { get; set; } = string.Empty;
 
     [Required, RegularExpression(@"^(?:\+61|0)[\s-]?[2-478](?:[\s-]?\d){8}$", ErrorMessage = "Enter an Australian phone number, e.g. 0412 345 678"), Display(Name = "Phone number")]
@@ -97,7 +104,7 @@ public class ReservationInput
     [Required, StringLength(60), Display(Name = "Last name")]
     public string LastName { get; set; } = string.Empty;
 
-    [EmailAddress, Display(Name = "Email (optional)")]
+    [StringLength(256), RegularExpression(EmailRules.Pattern, ErrorMessage = EmailRules.Message), Display(Name = "Email (optional)")]
     public string? Email { get; set; }
 
     [Required, RegularExpression(@"^(?:\+61|0)[\s-]?[2-478](?:[\s-]?\d){8}$", ErrorMessage = "Enter an Australian phone number, e.g. 0412 345 678"), Display(Name = "Phone")]
@@ -190,7 +197,7 @@ public class AccountDetailsViewModel
 /// <summary>Changing the login email needs the current password.</summary>
 public class ChangeEmailViewModel
 {
-    [Required, EmailAddress, StringLength(256), Display(Name = "New email address")]
+    [Required, StringLength(256), RegularExpression(EmailRules.Pattern, ErrorMessage = EmailRules.Message), Display(Name = "New email address")]
     public string NewEmail { get; set; } = string.Empty;
 
     [Required, DataType(DataType.Password), Display(Name = "Current password")]
@@ -245,7 +252,7 @@ public class EditAccountViewModel
     [Required, StringLength(60), Display(Name = "Last name")]
     public string LastName { get; set; } = string.Empty;
 
-    [Required, EmailAddress, StringLength(256), Display(Name = "Email address")]
+    [Required, StringLength(256), RegularExpression(EmailRules.Pattern, ErrorMessage = EmailRules.Message), Display(Name = "Email address")]
     public string Email { get; set; } = string.Empty;
 
     [RegularExpression(@"^(?:\+61|0)[\s-]?[2-478](?:[\s-]?\d){8}$", ErrorMessage = "Enter an Australian phone number, e.g. 0412 345 678"), Display(Name = "Phone number (optional)")]

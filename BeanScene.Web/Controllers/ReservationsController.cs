@@ -111,6 +111,8 @@ public class ReservationsController : Controller
         var searching = !string.IsNullOrWhiteSpace(criteria.Name) || criteria.From.HasValue || criteria.To.HasValue
             || criteria.Source.HasValue || !string.IsNullOrWhiteSpace(criteria.TableName);
 
+        criteria.From ??= RestaurantClock.Today;   // past bookings are not listed unless an earlier date is searched
+
         var pending = await _reservations.SearchAsync(criteria);
         var queue = new PendingFollowUpQueue(pending);
 

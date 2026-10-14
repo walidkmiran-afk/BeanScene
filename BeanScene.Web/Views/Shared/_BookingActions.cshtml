@@ -1,14 +1,15 @@
 ﻿@model BookingActionsModel
 @{
     var b = Model;
-    var canEdit = b.Status == ReservationStatus.Pending || b.Status == ReservationStatus.Confirmed;
-    var canAssign = b.Status != ReservationStatus.Cancelled && b.Status != ReservationStatus.Completed;
+    var live = b.Status == ReservationStatus.Pending || b.Status == ReservationStatus.Confirmed;
+    var canEdit = live && !b.IsPast;   // a booking from a day that has passed can only be cancelled
+    var canAssign = b.Status != ReservationStatus.Cancelled && b.Status != ReservationStatus.Completed && !b.IsPast;
     var buttons = new[]
     {
-        (Action: "Confirm", Label: "Confirm", Css: "btn-primary", On: b.Status == ReservationStatus.Pending, Ask: (string?)null),
+        (Action: "Confirm", Label: "Confirm", Css: "btn-primary", On: b.Status == ReservationStatus.Pending && !b.IsPast, Ask: (string?)null),
         (Action: "Seat", Label: "Seat", Css: "btn-info", On: canEdit, Ask: (string?)null),
         (Action: "Complete", Label: "Complete", Css: "btn-success", On: b.Status == ReservationStatus.Seated, Ask: (string?)null),
-        (Action: "Cancel", Label: "Cancel", Css: "btn-outline-danger", On: canEdit, Ask: (string?)"Cancel this booking?"),
+        (Action: "Cancel", Label: "Cancel", Css: "btn-outline-danger", On: live, Ask: (string?)"Cancel this booking?"),
         (Action: "Delete", Label: "Delete", Css: "btn-outline-secondary", On: b.Status != ReservationStatus.Seated && b.Status != ReservationStatus.Completed, Ask: (string?)"Delete this booking permanently?")
     }.Where(x => x.Action != "Delete" || b.CanDelete).ToList();
 }

@@ -1,4 +1,5 @@
 ﻿@using BeanScene.Web.Controllers
+@using BeanScene.Web.Services
 @model ScheduleViewModel
 @{
     string Badge(ReservationStatus s) => s switch
@@ -53,7 +54,7 @@
                         <div><label class="form-label small mb-0">Phone</label><input type="text" name="PhoneNumber" required class="form-control form-control-sm" style="width:120px" /></div>
                         <div>
                             <label class="form-label small mb-0">Start time</label>
-                                                        <div class="input-group input-group-sm flex-nowrap" style="width:auto">
+                            <div class="input-group input-group-sm flex-nowrap" style="width:auto">
                                 <select class="form-select add-hour" style="min-width:5.5rem" aria-label="Start hour"><option>--</option></select>
                                 <span class="input-group-text">:</span>
                                 <select class="form-select add-minute" style="min-width:4.5rem" aria-label="Start minute"><option>--</option></select>
@@ -80,6 +81,8 @@
                     @foreach (var b in list)
                     {
                         var canEdit = b.Status == ReservationStatus.Pending || b.Status == ReservationStatus.Confirmed;
+                        // Still Pending or Confirmed after its day has passed. Worked out from the date; nothing is stored.
+                        var isPast = canEdit && sel < RestaurantClock.Today;
                         var actions = new BookingActionsModel
                         {
                             ReservationId = b.ReservationId,
@@ -100,7 +103,8 @@
                             Areas = Model.Areas,
                             ReturnUrl = returnUrl,
                             ColSpan = 6,
-                            CanDelete = true
+                            CanDelete = true,
+                            IsPast = isPast
                         };
                         <tr data-booking data-start="@b.Start.ToString("HH:mm")" data-name="@b.Name" data-guests="@b.Guests" data-cancellable="@(canEdit ? "1" : "0")" class="@(b.Status == ReservationStatus.Cancelled ? "text-muted" : "")">
                             <td>@b.Start.ToString("HH:mm") <span class="text-muted">(@b.Minutes min)</span></td>
@@ -114,7 +118,17 @@
                             <td>@b.Phone</td>
                             <td>@b.Guests</td>
                             <td>@(b.TableNames.Count > 0 ? string.Join(", ", b.TableNames) : "-")</td>
-                            <td><span class="badge @Badge(b.Status)">@b.Status</span></td>
+                            <td>
+                                @if (isPast)
+                                {
+                                    <span class="badge bg-secondary">Past</span>
+                                    <div class="small text-muted">was @b.Status</div>
+                                }
+                                else
+                                {
+                                    <span class="badge @Badge(b.Status)">@b.Status</span>
+                                }
+                            </td>
                         </tr>
                         @if (!string.IsNullOrWhiteSpace(b.Requests))
                         {

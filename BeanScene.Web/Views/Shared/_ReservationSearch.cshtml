@@ -1,23 +1,34 @@
 ﻿@using Microsoft.AspNetCore.Mvc.Rendering
+@using BeanScene.Web.Data
+@using BeanScene.Web.Services
+@using Microsoft.EntityFrameworkCore
+@inject ApplicationDbContext Db
 @model ReservationSearchCriteria
 @{
-    // The same search for the Reservations and Follow-up pages. Follow-up leaves the Status box out (it is always Pending).
+    // The same search for the Reservations and Follow-up pages. Follow-up leaves the Status box out (it is always Pending)
+    // and does not allow dates before today.
     bool showStatus = ViewData["ShowStatus"] is true;
+    bool minToday = ViewData["MinToday"] is true;
+    string? minDate = minToday ? RestaurantClock.Today.ToString("yyyy-MM-dd") : null;
     var action = (string)ViewContext.RouteData.Values["action"]!;
     var c = Model;
     var statusItems = Html.GetEnumSelectList<ReservationStatus>()
         .Select(i => new SelectListItem(i.Text, i.Value, c.Status.HasValue && i.Value == ((int)c.Status.Value).ToString())).ToList();
     var sourceItems = Html.GetEnumSelectList<ReservationSource>()
         .Select(i => new SelectListItem(i.Text, i.Value, c.Source.HasValue && i.Value == ((int)c.Source.Value).ToString())).ToList();
+
+    // The table box can be typed in or picked from this list.
+    var tableRows = await Db.Tables.AsNoTracking().Select(t => new { t.AreaId, t.TableName }).ToListAsync();
+    var tableNames = tableRows.OrderBy(t => t.AreaId).ThenBy(t => t.TableName.Length).ThenBy(t => t.TableName).Select(t => t.TableName).ToList();
 }
-<form method="get" class="card card-body mb-3">
+<form method="get" id="resSearch" class="card card-body mb-3">
     <div class="row g-2">
         <div class="@(showStatus ? "col-md-3" : "col-md-4")"><label class="form-label small">Guest name, email or phone</label>
             <input name="Name" value="@c.Name" class="form-control form-control-sm" /></div>
         <div class="col-md-2"><label class="form-label small">From</label>
-            <input type="date" name="From" value="@(c.From?.ToString("yyyy-MM-dd"))" class="form-control form-control-sm" /></div>
+            <input type="date" name="From" value="@(c.From?.ToString("yyyy-MM-dd"))" min="@minDate" class="form-control form-control-sm" /></div>
         <div class="col-md-2"><label class="form-label small">To</label>
-            <input type="date" name="To" value="@(c.To?.ToString("yyyy-MM-dd"))" class="form-control form-control-sm" /></div>
+            <input type="date" name="To" value="@(c.To?.ToString("yyyy-MM-dd"))" min="@minDate" class="form-control form-control-sm" /></div>
         @if (showStatus)
         {
             <div class="col-md-2"><label class="form-label small">Status</label>
@@ -28,8 +39,44 @@
             <select name="Source" class="form-select form-select-sm" asp-items="sourceItems">
                 <option value="">Any</option></select></div>
         <div class="@(showStatus ? "col-md-1" : "col-md-2")"><label class="form-label small">Table</label>
-            <input name="TableName" value="@c.TableName" class="form-control form-control-sm" placeholder="M3" /></div>
+            <input name="TableName" value="@c.TableName" list="resTables" autocomplete="off" class="form-control form-control-sm" placeholder="M3" />
+            <datalist id="resTables">
+                @foreach (var name in tableNames)
+                {
+                    <option value="@name"></option>
+                }
+            </datalist></div>
     </div>
     <div class="mt-2"><button class="btn btn-sm btn-secondary" type="submit">Search</button>
+        <span class="small text-muted ms-1">Dates, status, source and table search by themselves. Type a name, then press Enter or Search.</span>
         <a class="btn btn-sm btn-link" href="@Url.Action(action)">Reset</a></div>
 </form>
+<script>
+(function () {
+    var form = document.getElementById('resSearch');
+
+    // Runs the search in place: the lists are swapped without reloading the page, and the address is kept up to date.
+    function run() {
+        if (!form.reportValidity()) return;
+        var params = new URLSearchParams(new FormData(form));
+        Array.from(params.keys()).forEach(function (k) { if (params.get(k) === '') params.delete(k); });
+        var url = location.pathname + (params.toString() ? '?' + params.toString() : '');
+        fetch(url, { headers: { 'X-Requested-With': 'fetch' } })
+            .then(function (r) { return r.text(); })
+            .then(function (html) {
+                var doc = new DOMParser().parseFromString(html, 'text/html');
+                var swapped = false;
+                doc.querySelectorAll('.bk-area[id]').forEach(function (fresh) {
+                    var old = document.getElementById(fresh.id);
+                    if (old) { old.replaceWith(fresh); swapped = true; }
+                });
+                if (swapped) history.replaceState(null, '', url); else location.href = url;
+            })
+            .catch(function () { location.href = url; });
+    }
+
+    form.addEventListener('submit', function (e) { e.preventDefault(); run(); });
+    // Everything except the name box searches as soon as it changes.
+    form.addEventListener('change', function (e) { if (e.target.name !== 'Name') run(); });
+})();
+</script>

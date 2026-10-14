@@ -11,7 +11,7 @@
     var returnTo = Context.Request.Path.Value + Context.Request.QueryString.Value;
     var areas = await Db.Areas.AsNoTracking().Include(a => a.Tables).OrderBy(a => a.AreaId).ToListAsync();
     var isManager = User.IsInRole(RoleNames.Manager);
-    var searchOptions = new ViewDataDictionary(ViewData) { { "ShowStatus", false } };
+    var searchOptions = new ViewDataDictionary(ViewData) { { "ShowStatus", false }, { "MinToday", true } };
 
     // A plain list of the queue, in the same order, so it can be counted for the day and sitting bars.
     var all = new List<Reservation>();

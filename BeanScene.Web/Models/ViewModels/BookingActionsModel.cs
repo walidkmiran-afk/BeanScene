@@ -29,4 +29,7 @@ public class BookingActionsModel
 
     /// <summary>Only managers can delete.</summary>
     public bool CanDelete { get; set; } = true;
+
+    /// <summary>The booking's day has passed and it is still Pending or Confirmed. Worked out from the date, never stored.</summary>
+    public bool IsPast { get; set; }
 }
