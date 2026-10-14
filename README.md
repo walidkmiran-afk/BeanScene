@@ -36,7 +36,7 @@ Screenshots: save images in docs/screenshots/ and delete the comment markers aro
 **Staff**
 - Book a table for a guest (in person, by phone or by email). Staff choose the source and stay on the page after each booking, so bookings can be entered one after another.
 - Every booking checks the phone number and the email against existing customers. Staff are told whether the guest matched a member account or an earlier guest, and by which one. A phone number alone never attaches a booking to a member account, and the same number with a different name is kept as a separate guest.
-- Reservations list with search, grouped by day and by sitting. Every booking has the shared panel: Edit and Tables open inline, and Confirm, Seat, Complete, Cancel and Delete (managers only) save without reloading the page.
+- Reservations list with search, grouped by day and by sitting. Dates, status, source and table search as soon as you change them, and a typed name searches on Enter. Every booking has the shared panel: Edit and Tables open inline, and Confirm, Seat, Complete, Cancel and Delete (managers only) save without reloading the page.
 - Follow-up list of pending reservations, soonest first, with the same search and the same panel. It is ordered with a merge sort held in a doubly linked list.
 - Assign one or more tables from the Main, Outside and Balcony areas (10 tables each). A table cannot be given to two overlapping reservations.
 
@@ -56,6 +56,13 @@ Screenshots: save images in docs/screenshots/ and delete the comment markers aro
 - New reservations cannot be made for a time that has already passed.
 - A booking's time never changes when sittings change. Only its sitting can change, if another open sitting covers its start time.
 - A cancelled booking cannot be brought back, because its time and tables are free for someone else. A new booking has to be made.
+- A Pending or Confirmed booking from a day that has passed
+  shows a grey **Past** tag and its buttons are disabled. This
+  is worked out from the date and is never stored, so a wrong
+  clock can't change a booking.
+- Email addresses must be real in format, like name@example.com.
+  The same rule applies on sign-up, change email, the manager's
+  edit form and the booking form.
 - A staff login is a username plus `@beanscene.test`. A manager can change a staff member's username, but never their email, and the username must not already be taken. Members log in with their email, so a manager can change that instead.
 - Roles: **Manager**, **Staff** and **Member**, enforced with `[Authorize(Roles = ...)]`.
 - Concurrent edits are detected with a row version, so two staff members cannot silently overwrite each other.
