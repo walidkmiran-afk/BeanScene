@@ -63,17 +63,12 @@ public class SittingFormViewModel : IValidatableObject
     [Display(Name = "Closed to reservations")]
     public bool IsClosed { get; set; }
 
-    [Display(Name = "Closed reason")]
-    public ClosedReason ClosedReason { get; set; } = ClosedReason.None;
-
     public Guid RowVersion { get; set; }
 
     public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
     {
         if (EndTime <= StartTime)
             yield return new ValidationResult("The end time must be after the start time.", new[] { nameof(EndTime) });
-        if (IsClosed && ClosedReason == ClosedReason.None)
-            yield return new ValidationResult("Choose why the sitting is closed.", new[] { nameof(ClosedReason) });
     }
 }
 

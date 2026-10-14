@@ -12,7 +12,7 @@ public interface ISittingService
     Task<List<Sitting>> GetOpenUpcomingAsync();
     Task<OperationResult> CreateAsync(SittingFormViewModel form);
     Task<OperationResult> UpdateAsync(SittingFormViewModel form);
-    Task<OperationResult> SetClosedAsync(int id, bool closed, ClosedReason reason);
+    Task<OperationResult> SetClosedAsync(int id, bool closed);
     Task<OperationResult> DeleteAsync(int id);
 }
 
@@ -66,8 +66,7 @@ public class SittingService : ISittingService
             StartTime = form.StartTime,
             EndTime = form.EndTime,
             Capacity = form.Capacity,
-            IsClosed = form.IsClosed,
-            ClosedReason = form.IsClosed ? form.ClosedReason : ClosedReason.None
+            IsClosed = form.IsClosed
         });
         await _db.SaveChangesAsync();
         return OperationResult.Ok();
@@ -92,7 +91,6 @@ public class SittingService : ISittingService
         sitting.EndTime = form.EndTime;
         sitting.Capacity = form.Capacity;
         sitting.IsClosed = form.IsClosed;
-        sitting.ClosedReason = form.IsClosed ? form.ClosedReason : ClosedReason.None;
 
         try
         {
@@ -106,12 +104,11 @@ public class SittingService : ISittingService
         }
     }
 
-    public async Task<OperationResult> SetClosedAsync(int id, bool closed, ClosedReason reason)
+    public async Task<OperationResult> SetClosedAsync(int id, bool closed)
     {
         var sitting = await GetAsync(id);
         if (sitting == null) return OperationResult.Fail("Sitting not found.");
         sitting.IsClosed = closed;
-        sitting.ClosedReason = closed ? (reason == ClosedReason.None ? ClosedReason.BookedOut : reason) : ClosedReason.None;
         try
         {
             await _db.SaveChangesAsync();

@@ -2,7 +2,6 @@ namespace BeanScene.Web.Models;
 
 public enum SittingType { Breakfast, Lunch, Dinner, Special }
 
-public enum ClosedReason { None, BookedOut, PrivateEvent }
 
 public enum ReservationStatus { Pending, Confirmed, Cancelled, Seated, Completed }
 

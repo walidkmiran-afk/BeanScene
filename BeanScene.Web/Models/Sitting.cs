@@ -17,7 +17,6 @@ public class Sitting : BaseEntity
     public int Capacity { get; set; }
 
     public bool IsClosed { get; set; }
-    public ClosedReason ClosedReason { get; set; } = ClosedReason.None;
 
     public virtual ICollection<Reservation> Reservations { get; set; } = new List<Reservation>();
 

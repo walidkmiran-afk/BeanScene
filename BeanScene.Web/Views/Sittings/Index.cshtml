@@ -18,7 +18,7 @@
             <td>@s.SittingType</td>
             <td>@s.StartTime.ToString("h:mm tt") - @s.EndTime.ToString("h:mm tt")</td>
             <td>@item.GuestsBooked / @s.Capacity</td>
-            <td>@if (s.IsClosed) { <span class="badge text-bg-secondary">Closed (@s.ClosedReason)</span> } else { <span class="badge text-bg-success">Open</span> }</td>
+            <td>@if (s.IsClosed) { <span class="badge text-bg-secondary">Closed</span> } else { <span class="badge text-bg-success">Open</span> }</td>
             <td class="text-end">
                 <a class="btn btn-sm btn-outline-primary" asp-action="Edit" asp-route-id="@s.SittingId">Edit</a>
                 @if (s.IsClosed)
@@ -27,12 +27,7 @@
                 }
                 else
                 {
-                    <form asp-action="Close" asp-route-id="@s.SittingId" method="post" class="d-inline">
-                        <input type="hidden" name="reason" value="BookedOut" />
-                        <button class="btn btn-sm btn-outline-warning">Close (booked out)</button></form>
-                    <form asp-action="Close" asp-route-id="@s.SittingId" method="post" class="d-inline">
-                        <input type="hidden" name="reason" value="PrivateEvent" />
-                        <button class="btn btn-sm btn-outline-warning">Close (private event)</button></form>
+                    <form asp-action="Close" asp-route-id="@s.SittingId" method="post" class="d-inline"><button class="btn btn-sm btn-outline-warning">Close</button></form>
                 }
                 <a class="btn btn-sm btn-outline-danger" asp-action="Delete" asp-route-id="@s.SittingId">Delete</a>
             </td>

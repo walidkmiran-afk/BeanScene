@@ -37,7 +37,6 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser, Applicati
         builder.Entity<Sitting>(e =>
         {
             e.Property(s => s.SittingType).HasConversion<string>().HasMaxLength(20);
-            e.Property(s => s.ClosedReason).HasConversion<string>().HasMaxLength(20);
             e.HasIndex(s => new { s.SittingDate, s.SittingType });
             e.HasMany(s => s.Reservations).WithOne(r => r.Sitting).HasForeignKey(r => r.SittingId)
                 .OnDelete(DeleteBehavior.Restrict);

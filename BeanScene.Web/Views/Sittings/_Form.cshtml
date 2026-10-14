@@ -27,9 +27,6 @@
 <div class="row">
     <div class="col-md-4 mb-3"><div class="form-check">
         <input asp-for="IsClosed" class="form-check-input" /><label asp-for="IsClosed" class="form-check-label"></label></div></div>
-    <div class="col-md-4 mb-3"><label asp-for="ClosedReason" class="form-label"></label>
-        <select asp-for="ClosedReason" class="form-select" asp-items="Html.GetEnumSelectList<ClosedReason>()"></select>
-        <span asp-validation-for="ClosedReason" class="text-danger"></span></div>
 </div>
 <script>
         (function () {

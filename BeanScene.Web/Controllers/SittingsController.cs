@@ -51,7 +51,8 @@ public class SittingsController : Controller
         {
             SittingId = s.SittingId, SittingType = s.SittingType, SittingDate = s.SittingDate,
             StartTime = s.StartTime, EndTime = s.EndTime, Capacity = s.Capacity,
-            IsClosed = s.IsClosed, ClosedReason = s.ClosedReason, RowVersion = s.RowVersion
+            IsClosed = s.IsClosed,
+            RowVersion = s.RowVersion
         });
     }
 
@@ -73,9 +74,9 @@ public class SittingsController : Controller
     }
 
     [HttpPost]
-    public async Task<IActionResult> Close(int id, ClosedReason reason)
+    public async Task<IActionResult> Close(int id)
     {
-        var result = await _sittings.SetClosedAsync(id, true, reason);
+        var result = await _sittings.SetClosedAsync(id, true);
         TempData[result.Succeeded ? "Success" : "Error"] = result.Succeeded ? "Sitting closed." : string.Join(" ", result.Errors);
         return RedirectToAction(nameof(Index));
     }
@@ -83,7 +84,7 @@ public class SittingsController : Controller
     [HttpPost]
     public async Task<IActionResult> Reopen(int id)
     {
-        var result = await _sittings.SetClosedAsync(id, false, ClosedReason.None);
+        var result = await _sittings.SetClosedAsync(id, false);
         TempData[result.Succeeded ? "Success" : "Error"] = result.Succeeded ? "Sitting reopened." : string.Join(" ", result.Errors);
         return RedirectToAction(nameof(Index));
     }

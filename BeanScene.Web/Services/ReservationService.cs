@@ -343,7 +343,7 @@ public class ReservationService : IReservationService
         }
 
         if (sitting.IsClosed)
-            errors.Add($"This sitting is closed to reservations ({sitting.ClosedReason}).");
+            errors.Add("This sitting is closed to reservations.");
 
         if (input.StartTime < sitting.StartTime || input.StartTime >= sitting.EndTime)
             errors.Add($"The start time must be between {sitting.StartTime:h:mm tt} and {sitting.EndTime:h:mm tt}.");

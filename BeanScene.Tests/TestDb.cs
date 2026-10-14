@@ -49,7 +49,7 @@ public sealed class TestDb : IDisposable
         {
             SittingType = SittingType.Special, SittingDate = TestDate,
             StartTime = new TimeOnly(12, 0), EndTime = new TimeOnly(15, 0), Capacity = 10,
-            IsClosed = true, ClosedReason = ClosedReason.PrivateEvent
+            IsClosed = true
         };
         db.Sittings.AddRange(open, closed);
         db.SaveChanges();
