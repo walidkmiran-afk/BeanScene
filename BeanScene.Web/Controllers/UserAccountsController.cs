@@ -96,10 +96,10 @@ public class UserAccountsController : Controller
         return Done($"Staff account created. Login: {email}");
     }
 
-    // ---- edit name, phone and email ------------------------------------------------
+    // ---- edit name, phone and login ------------------------------------------------
 
     [HttpPost]
-    public async Task<IActionResult> Edit(EditAccountViewModel model)
+    public async Task<IActionResult> Edit(EditAccountViewModel model, string? username)
     {
         if (!ModelState.IsValid) return Fail(Errors());
 
@@ -108,15 +108,31 @@ public class UserAccountsController : Controller
         var customer = await _db.Customers.FirstOrDefaultAsync(c => c.UserId == user.Id);
         if (customer == null) return Fail(Missing);
 
-        // The new email must not belong to another login or another guest record.
-        var newEmail = model.Email.Trim();
+        // A staff login is a username plus @beanscene.test, so managers change the username and never the email itself.
+        // Members log in with their email, so for them the email is what changes.
+        var isStaff = await _users.IsInRoleAsync(user, RoleNames.Staff);
+        string newEmail;
+        if (isStaff)
+        {
+            var name = (username ?? "").Trim().ToLower();
+            if (name.Length < 3 || name.Length > 40 || !System.Text.RegularExpressions.Regex.IsMatch(name, @"^[a-z0-9]+(\.[a-z0-9]+)*$"))
+                return Fail("The username needs 3 to 40 letters or digits, with single dots between the parts.");
+            newEmail = name + "@beanscene.test";
+        }
+        else
+        {
+            newEmail = model.Email.Trim();
+        }
+
+        // The new login must not belong to another login or another guest record.
         var lower = newEmail.ToLower();
         var other = await _users.FindByEmailAsync(newEmail);
         var inUse = (other != null && other.Id != user.Id)
                     || await _db.Customers.AnyAsync(c => c.Email.ToLower() == lower && c.UserId != user.Id);
-        if (inUse) return Fail("That email address is already in use.");
+        if (inUse) return Fail(isStaff ? "That username is already in use." : "That email address is already in use.");
 
         var phone = ReservationService.NormalizePhone(model.PhoneNumber ?? "");
+        var loginChanged = !string.Equals(user.Email, newEmail, StringComparison.OrdinalIgnoreCase);
 
         // The login and the guest record change together or not at all.
         await using var transaction = await _db.Database.BeginTransactionAsync();
@@ -142,6 +158,7 @@ public class UserAccountsController : Controller
         }
         await transaction.CommitAsync();
 
+        if (isStaff && loginChanged) return Done($"Username changed. They log in as {newEmail} from now on.");
         return Done("Account details updated.");
     }
 

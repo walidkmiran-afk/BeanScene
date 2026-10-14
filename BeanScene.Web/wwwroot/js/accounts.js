@@ -92,10 +92,16 @@
         f.elements.UserId.value = row.dataset.id;
         $('.acct-for', td).textContent = row.dataset.name;
         if (kind === 'edit') {
+            const staff = row.dataset.staff === '1';
             f.elements.FirstName.value = row.dataset.first;
             f.elements.LastName.value = row.dataset.last;
             f.elements.Email.value = row.dataset.email;
             f.elements.PhoneNumber.value = row.dataset.phone;
+            f.elements.username.value = row.dataset.username;
+            f.elements.username.required = staff;
+            // staff change their username, members change their email
+            $$('.acct-staff-only', td).forEach(e => { e.hidden = !staff; });
+            $$('.acct-member-only', td).forEach(e => { e.hidden = staff; });
         }
         const first = $('input:not([type=hidden])', f);
         if (first) first.focus();
