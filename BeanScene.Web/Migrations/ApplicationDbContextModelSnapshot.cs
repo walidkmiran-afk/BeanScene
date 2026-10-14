@@ -220,8 +220,9 @@ namespace BeanScene.Web.Migrations
                     b.Property<int>("NumberOfGuests")
                         .HasColumnType("int");
 
-                    b.Property<int?>("OriginalSittingType")
-                        .HasColumnType("int");
+                    b.Property<string>("OriginalLabel")
+                        .HasMaxLength(40)
+                        .HasColumnType("nvarchar(40)");
 
                     b.Property<Guid>("RowVersion")
                         .IsConcurrencyToken()
@@ -306,6 +307,10 @@ namespace BeanScene.Web.Migrations
 
                     b.Property<bool>("IsCustomised")
                         .HasColumnType("bit");
+
+                    b.Property<string>("Label")
+                        .HasMaxLength(40)
+                        .HasColumnType("nvarchar(40)");
 
                     b.Property<Guid>("RowVersion")
                         .IsConcurrencyToken()

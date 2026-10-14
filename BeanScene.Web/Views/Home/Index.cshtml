@@ -25,7 +25,7 @@ else
         {
             <tr>
                 <td>@s.SittingDate.ToString("ddd d MMM yyyy")</td>
-                <td>@s.SittingType</td>
+                <td>@s.Name</td>
                 <td>@s.StartTime.ToString("h:mm tt") - @s.EndTime.ToString("h:mm tt")</td>
                 <td class="text-end"><a asp-controller="Booking" asp-action="Index" asp-route-sittingId="@s.SittingId">Book</a></td>
             </tr>

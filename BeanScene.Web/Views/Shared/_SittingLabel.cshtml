@@ -1,0 +1,16 @@
+﻿@model Reservation
+@{
+    var current = Model.Sitting.Name;
+    var changed = Model.Status != ReservationStatus.Cancelled
+                  && !string.IsNullOrEmpty(Model.OriginalLabel)
+                  && Model.OriginalLabel != current;
+}
+@if (changed)
+{
+    <div class="text-muted text-decoration-line-through">@Model.OriginalLabel</div>
+    <div>@current <span class="badge bg-secondary">Changed</span></div>
+}
+else
+{
+    @current
+}

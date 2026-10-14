@@ -9,6 +9,10 @@ public class Sitting : BaseEntity
 
     public SittingType SittingType { get; set; }
 
+    /// <summary>Optional custom name, e.g. "Mother's Day brunch". Empty means the sitting type is used.</summary>
+    [StringLength(40)]
+    public string? Label { get; set; }
+
     public DateOnly SittingDate { get; set; }
     public TimeOnly StartTime { get; set; }
     public TimeOnly EndTime { get; set; }
@@ -18,11 +22,15 @@ public class Sitting : BaseEntity
 
     public bool IsClosed { get; set; }
 
+    /// <summary>True when this day's sitting was changed away from the weekly hours.</summary>
     public bool IsCustomised { get; set; }
 
     public virtual ICollection<Reservation> Reservations { get; set; } = new List<Reservation>();
 
     [NotMapped]
+    public string Name => string.IsNullOrWhiteSpace(Label) ? SittingType.ToString() : Label;
+
+    [NotMapped]
     public string DisplayName =>
-        $"{SittingType} - {SittingDate:ddd d MMM yyyy}, {StartTime:h:mm tt} to {EndTime:h:mm tt}";
+        $"{Name} - {SittingDate:ddd d MMM yyyy}, {StartTime:h:mm tt} to {EndTime:h:mm tt}";
 }

@@ -1,0 +1,89 @@
+﻿@using BeanScene.Web.Controllers
+@model ScheduleViewModel
+@{
+    string Badge(ReservationStatus s) => s switch
+    {
+        ReservationStatus.Pending => "bg-warning text-dark",
+        ReservationStatus.Confirmed => "bg-primary",
+        ReservationStatus.Seated => "bg-info text-dark",
+        ReservationStatus.Completed => "bg-success",
+        _ => "bg-secondary"
+    };
+}
+@if (Model.Selected.HasValue)
+{
+    var sel = Model.Selected.Value;
+    var items = Model.SelectedSittings;
+
+    @* One hidden panel per sitting. Clicking a Bookings number shows that sitting's panel only. *@
+    <div class="mx-auto bk-area" id="bkPanels" style="max-width:660px;font-size:.8rem">
+    @foreach (var item in items)
+    {
+        var s = item.Sitting;
+        var list = Model.DayBookings.Where(b => b.SittingId == s.SittingId).ToList();
+        if (list.Count == 0) { continue; }
+        var returnUrl = Url.Action("Index", "Sittings", new { selected = sel.ToString("yyyy-MM-dd"), open = s.SittingId }) ?? "";
+        <div class="card mb-4 bk-panel" data-sitting="@s.SittingId" style="display:none">
+            <div class="card-header py-2 d-flex justify-content-between align-items-center">
+                <strong>
+                    @s.Name bookings
+                    <span class="text-muted fw-normal">@s.StartTime.ToString("HH:mm")-@s.EndTime.ToString("HH:mm") &middot; @item.GuestsBooked of @s.Capacity seats@(s.IsClosed ? " · Closed" : "")</span>
+                </strong>
+                <button type="button" class="btn-close bk-close" aria-label="Close"></button>
+            </div>
+            <div class="card-body py-2">
+                <table class="table table-sm align-middle mb-0">
+                    <thead><tr class="text-muted"><th>Time</th><th>Name</th><th>Phone</th><th>Guests</th><th>Tables</th><th>Status</th></tr></thead>
+                    <tbody>
+                    @foreach (var b in list)
+                    {
+                        var canEdit = b.Status == ReservationStatus.Pending || b.Status == ReservationStatus.Confirmed;
+                        var actions = new BookingActionsModel
+                        {
+                            ReservationId = b.ReservationId,
+                            SittingId = b.SittingId,
+                            Status = b.Status,
+                            FirstName = b.FirstName,
+                            LastName = b.LastName,
+                            Email = b.Email,
+                            Phone = b.Phone,
+                            Start = b.Start,
+                            Minutes = b.Minutes,
+                            Guests = b.Guests,
+                            Source = b.Source.ToString() ?? "",
+                            Requests = b.Requests,
+                            RowVersion = b.RowVersion,
+                            TableIds = b.TableIds,
+                            UnavailableTableIds = b.UnavailableTableIds,
+                            Areas = Model.Areas,
+                            ReturnUrl = returnUrl,
+                            ColSpan = 6,
+                            CanDelete = true
+                        };
+                        <tr data-booking data-start="@b.Start.ToString("HH:mm")" data-name="@b.Name" data-guests="@b.Guests" data-cancellable="@(canEdit ? "1" : "0")" class="@(b.Status == ReservationStatus.Cancelled ? "text-muted" : "")">
+                            <td>@b.Start.ToString("HH:mm") <span class="text-muted">(@b.Minutes min)</span></td>
+                            <td>
+                                @b.Name
+                                @if (b.Status != ReservationStatus.Cancelled && !string.IsNullOrEmpty(b.OriginalLabel) && b.OriginalLabel != s.Name)
+                                {
+                                    <div class="small"><span class="text-muted text-decoration-line-through">@b.OriginalLabel</span><br />@s.Name <span class="badge bg-secondary">Changed</span></div>
+                                }
+                            </td>
+                            <td>@b.Phone</td>
+                            <td>@b.Guests</td>
+                            <td>@(b.TableNames.Count > 0 ? string.Join(", ", b.TableNames) : "-")</td>
+                            <td><span class="badge @Badge(b.Status)">@b.Status</span></td>
+                        </tr>
+                        @if (!string.IsNullOrWhiteSpace(b.Requests))
+                        {
+                            <tr><td></td><td colspan="5" class="text-muted small pt-0">Request: @b.Requests</td></tr>
+                        }
+                        <partial name="_BookingActions" model="actions" />
+                    }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    }
+    </div>
+}

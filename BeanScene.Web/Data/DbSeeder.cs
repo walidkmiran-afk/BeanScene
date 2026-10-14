@@ -88,15 +88,25 @@ public static class DbSeeder
     {
         if (await db.StoreHours.AnyAsync()) return;
 
-        var standard = new (SittingType Type, TimeOnly Start, TimeOnly End)[]
+        var sittings = new (SittingType Type, TimeOnly Start, TimeOnly End)[]
         {
             (SittingType.Breakfast, new TimeOnly(7, 0), new TimeOnly(11, 0)),
-            (SittingType.Lunch, new TimeOnly(12, 0), new TimeOnly(15, 0)),
-            (SittingType.Dinner, new TimeOnly(18, 0), new TimeOnly(23, 0))
+            (SittingType.Lunch, new TimeOnly(11, 0), new TimeOnly(15, 0)),
+            (SittingType.Dinner, new TimeOnly(15, 0), new TimeOnly(23, 0))
         };
-        foreach (var day in Enum.GetValues<DayOfWeek>())
-            foreach (var (type, start, end) in standard)
-                db.StoreHours.Add(new StoreHour { DayOfWeek = day, SittingType = type, IsOpen = true, StartTime = start, EndTime = end, Capacity = 40 });
+
+        foreach (DayOfWeek day in Enum.GetValues<DayOfWeek>())
+            foreach (var (type, start, end) in sittings)
+                db.StoreHours.Add(new StoreHour
+                {
+                    DayOfWeek = day,
+                    SittingType = type,
+                    IsOpen = true,
+                    StartTime = start,
+                    EndTime = end,
+                    Capacity = 40
+                });
+
         await db.SaveChangesAsync();
     }
     private static async Task SeedSittingsAndReservationsAsync(ApplicationDbContext db)

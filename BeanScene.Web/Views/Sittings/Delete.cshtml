@@ -1,8 +1,0 @@
-@model Sitting
-@{ ViewData["Title"] = "Delete sitting"; }
-<h1 class="h3 text-danger">Delete this sitting?</h1>
-<p>@Model.DisplayName (capacity @Model.Capacity). A sitting with reservations cannot be deleted - close it instead.</p>
-<form asp-action="Delete" asp-route-id="@Model.SittingId" method="post">
-    <button class="btn btn-danger" type="submit">Delete</button>
-    <a class="btn btn-link" asp-action="Index">Cancel</a>
-</form>

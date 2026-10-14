@@ -1,0 +1,121 @@
+﻿.wk-field[type=number]::-webkit-inner-spin-button, .wk-field[type=number]::-webkit-outer-spin-button,
+.dy-field[type=number]::-webkit-inner-spin-button, .dy-field[type=number]::-webkit-outer-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+
+.wk-field[type=number], .dy-field[type=number] {
+    -moz-appearance: textfield;
+}
+
+.wk-table td, .wk-table th {
+    padding: 2px 2px !important;
+}
+
+.wk-bad {
+    border-color: #dc3545 !important;
+    background-color: #f8d7da !important;
+}
+
+.cal td {
+    height: 70px;
+    padding: 0 !important;
+    overflow: hidden;
+    vertical-align: top;
+}
+
+.cal a.cal-day {
+    display: block;
+    height: 100%;
+    padding: 2px 3px;
+    color: inherit;
+    text-decoration: none;
+    font-size: .65rem;
+    line-height: 1.25;
+    white-space: nowrap;
+}
+
+    .cal a.cal-day:hover {
+        filter: brightness(.95);
+    }
+
+.cal-swatch {
+    display: inline-block;
+    width: 12px;
+    height: 12px;
+    border: 1px solid #adb5bd;
+    vertical-align: middle;
+    margin-right: 3px;
+}
+
+/* Calendar: shrinks with the window instead of staying 476px wide. */
+.cal {
+    width: 100% !important;
+    max-width: 476px;
+}
+
+    .cal th {
+        width: auto !important;
+    }
+
+/* Day editor: narrower boxes and tighter spacing. */
+#dayForm .card-body {
+    padding-left: .4rem;
+    padding-right: .4rem;
+}
+
+#dayRows td, #dayForm thead th {
+    padding: 1px 2px !important;
+}
+
+#dayRows .dy-label {
+    width: 96px !important;
+}
+
+#dayRows .dy-btn {
+    width: 46px !important;
+}
+
+#dayRows .dy-field[type=text] {
+    width: 48px !important;
+}
+
+#dayRows .dy-field[type=number] {
+    width: 42px !important;
+}
+
+/* Bookings panel: smaller text and tighter cells. */
+.bk-panel table {
+    font-size: .75rem;
+}
+
+.bk-panel td, .bk-panel th {
+    padding: 2px 3px !important;
+}
+
+@media (max-width: 600px) {
+    .bk-panel td:first-child .text-muted {
+        display: none;
+    }
+}
+
+@media (max-width: 420px) {
+    #dayRows .dy-label {
+        width: 70px !important;
+    }
+}
+
+/* Dark line between the items in the lists that open under the calendar. */
+.bk-panel tr[data-booking] > td {
+    border-top: 2px solid #212529 !important;
+    padding-top: 6px !important;
+}
+
+.bk-panel tbody tr[data-booking]:first-child > td {
+    border-top: 0 !important;
+}
+
+#dayRows tr.dy-row + tr.dy-row > td {
+    border-top: 1px solid #212529 !important;
+    padding-top: 4px !important;
+}

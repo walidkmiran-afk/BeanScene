@@ -23,3 +23,54 @@ pre.log { background: #f8f9fa; border: 1px solid #dee2e6; padding: .75rem; borde
         width: 50%;
     }
 }
+
+/* Booking buttons (shared by Sittings, Reservations and any other page that lists bookings):
+   one tidy row of 7 on a wide screen, 4 + 3 on a medium one, 2 across on a narrow one. */
+.bk-actions {
+    display: grid;
+    grid-template-columns: repeat(7, minmax(0, 1fr));
+    gap: 3px;
+    max-width: 600px;
+}
+
+    .bk-actions form {
+        display: contents;
+    }
+
+    .bk-actions .btn {
+        width: 100%;
+        padding: 1px 2px;
+        font-size: .7rem;
+        line-height: 1.4;
+        white-space: nowrap;
+    }
+
+@media (max-width: 560px) {
+    .bk-actions {
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 360px) {
+    .bk-actions {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+/* The Reservations list: smaller text and a dark line between bookings. */
+.bk-list {
+    font-size: .8rem;
+}
+
+    .bk-list td, .bk-list th {
+        padding: 3px 5px !important;
+    }
+
+    .bk-list tr.bk-main > td {
+        border-top: 2px solid #212529 !important;
+        padding-top: 6px !important;
+    }
+
+    .bk-list tbody tr.bk-main:first-child > td {
+        border-top: 0 !important;
+    }

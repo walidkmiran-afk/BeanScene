@@ -1,0 +1,62 @@
+﻿@using BeanScene.Web.Controllers
+@model ScheduleViewModel
+@{
+    var weekly = Model.Hours;
+    var wi = 0;
+    var days = new[] { DayOfWeek.Monday, DayOfWeek.Tuesday, DayOfWeek.Wednesday, DayOfWeek.Thursday, DayOfWeek.Friday, DayOfWeek.Saturday, DayOfWeek.Sunday };
+    var types = new[] { SittingType.Breakfast, SittingType.Lunch, SittingType.Dinner };
+}
+<div class="text-center mb-2">
+    <button class="btn btn-outline-secondary btn-sm" type="button" data-bs-toggle="collapse" data-bs-target="#weeklyHours" aria-expanded="false">
+        <strong>Weekly hours</strong> <span id="weeklyArrow">&#9660;</span> <span id="weeklyHint" class="text-muted">click to edit</span>
+    </button>
+</div>
+<div class="collapse mb-3" id="weeklyHours" style="font-size:.75rem">
+    <form asp-action="SaveWeekly" method="post" id="weeklyForm">
+        <table class="table table-sm table-borderless align-middle mb-0 wk-table mx-auto" style="width:auto">
+            <thead>
+                <tr class="text-muted">
+                    <th></th>
+                    @foreach (var d in days)
+                    {
+                        <th class="text-center">@d.ToString().Substring(0, 3)</th>
+                    }
+                </tr>
+            </thead>
+            <tbody>
+            @foreach (var t in types)
+            {
+                <tr class="border-top">
+                    <td style="vertical-align:top">
+                        <div class="d-flex flex-column gap-1 text-end">
+                            <div class="fw-semibold" style="height:22px;line-height:22px">@t</div>
+                            <div class="text-muted" style="height:22px;line-height:22px">From</div>
+                            <div class="text-muted" style="height:22px;line-height:22px">To</div>
+                            <div class="text-muted" style="height:22px;line-height:22px">Seats</div>
+                        </div>
+                    </td>
+                    @foreach (var d in days)
+                    {
+                        var h = weekly.First(x => x.DayOfWeek == d && x.SittingType == t);
+                        <td style="vertical-align:top" data-day="@((int)d)">
+                            <div class="d-flex flex-column align-items-center gap-1">
+                                <input type="hidden" name="hours[@wi].StoreHourId" value="@h.StoreHourId" />
+                                <input type="hidden" name="hours[@wi].IsOpen" value="@(h.IsOpen ? "true" : "false")" class="wk-flag" />
+                                <button type="button" class="btn btn-sm p-0 wk-btn" style="width:48px;height:22px;font-size:.7rem">@(h.IsOpen ? "Open" : "Closed")</button>
+                                <input type="text" name="hours[@wi].StartTime" value="@h.StartTime.ToString("HH:mm")" maxlength="5" pattern="([01][0-9]|2[0-3]):[0-5][0-9]" title="Start time, for example 07:00" class="form-control form-control-sm p-0 text-center wk-field" style="width:48px;font-size:.75rem;height:22px" />
+                                <input type="text" name="hours[@wi].EndTime" value="@h.EndTime.ToString("HH:mm")" maxlength="5" pattern="([01][0-9]|2[0-3]):[0-5][0-9]" title="End time, for example 11:00" class="form-control form-control-sm p-0 text-center wk-field" style="width:48px;font-size:.75rem;height:22px" />
+                                <input type="number" name="hours[@wi].Capacity" value="@h.Capacity" min="1" max="500" title="Seats" class="form-control form-control-sm p-0 text-center wk-field" style="width:48px;font-size:.75rem;height:22px" />
+                            </div>
+                        </td>
+                        wi++;
+                    }
+                </tr>
+            }
+            </tbody>
+        </table>
+        <div class="text-center mt-2">
+            <button type="submit" class="btn btn-primary btn-sm py-0">Save weekly hours</button>
+            <button type="button" id="weeklyUndo" class="btn btn-outline-secondary btn-sm py-0 ms-1">Undo changes</button>
+        </div>
+    </form>
+</div>

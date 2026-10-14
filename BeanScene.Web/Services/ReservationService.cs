@@ -345,14 +345,18 @@ public class ReservationService : IReservationService
         if (sitting.IsClosed)
             errors.Add("This sitting is closed to reservations.");
 
-        if (input.StartTime < sitting.StartTime || input.StartTime >= sitting.EndTime)
-            errors.Add($"The start time must be between {sitting.StartTime:h:mm tt} and {sitting.EndTime:h:mm tt}.");
+        // New bookings can start up to 30 minutes before the sitting ends.
+        var lastStart = sitting.EndTime.AddMinutes(excludeReservationId == null ? -30 : -1);
+        if (input.StartTime < sitting.StartTime || input.StartTime > lastStart)
+            errors.Add($"The start time must be between {sitting.StartTime:h:mm tt} and {lastStart:h:mm tt}.");
 
-        // The whole reservation must fit inside the sitting (compare in minutes so a late finish cannot wrap past midnight).
+        // The booking must finish before the restaurant closes (the end of the day's last open sitting).
         var finishesAt = input.StartTime.Hour * 60 + input.StartTime.Minute + input.DurationMinutes;
-        var sittingEnds = sitting.EndTime.Hour * 60 + sitting.EndTime.Minute;
-        if (finishesAt > sittingEnds)
-            errors.Add($"The reservation would finish after the sitting ends at {sitting.EndTime:h:mm tt}. Choose an earlier start time or a shorter duration.");
+        var sittingEnds = (await _db.Sittings.AsNoTracking()
+            .Where(s => s.SittingDate == sitting.SittingDate && !s.IsClosed)
+            .Select(s => s.EndTime).ToListAsync()).DefaultIfEmpty(sitting.EndTime).Max();
+        if (finishesAt > sittingEnds.Hour * 60 + sittingEnds.Minute)
+            errors.Add($"The reservation would finish after the restaurant closes at {sittingEnds:h:mm tt}. Choose an earlier start time or a shorter duration.");
 
         // New reservations cannot be made for a time that has already passed.
         if (excludeReservationId == null && sitting.SittingDate.ToDateTime(input.StartTime) < RestaurantClock.Now)
@@ -361,7 +365,6 @@ public class ReservationService : IReservationService
         var booked = await GuestsBookedAsync(sitting.SittingId, excludeReservationId);
         if (booked + input.NumberOfGuests > sitting.Capacity)
             errors.Add($"Not enough capacity: {booked} of {sitting.Capacity} guests are already booked for this sitting.");
-
 
         // The same guest (matched by email) cannot hold two active reservations that overlap in time on one sitting.
         var email = (input.Email ?? "").Trim().ToLower();

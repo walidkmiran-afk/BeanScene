@@ -32,7 +32,9 @@ public class Reservation : BaseEntity
     [StringLength(500)]
     public string? SpecialRequests { get; set; }
 
-    public SittingType? OriginalSittingType { get; set; }
+    /// <summary>The sitting name this booking was first made under. Stored once, never overwritten.</summary>
+    [StringLength(40)]
+    public string? OriginalLabel { get; set; }
 
     public virtual ICollection<ReservationTable> ReservationTables { get; set; } = new List<ReservationTable>();
 

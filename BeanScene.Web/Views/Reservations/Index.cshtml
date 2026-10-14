@@ -1,124 +1,114 @@
 @using Microsoft.AspNetCore.Mvc.Rendering
+@using BeanScene.Web.Data
+@using Microsoft.EntityFrameworkCore
+@inject ApplicationDbContext Db
 @model List<Reservation>
 @{
     ViewData["Title"] = "Reservations";
     var c = (ReservationSearchCriteria)ViewBag.Criteria;
+    var unavailable = (Dictionary<int, HashSet<int>>)ViewBag.Unavailable;
     var returnTo = Context.Request.Path.Value + Context.Request.QueryString.Value;
-    var statusItems = Html.GetEnumSelectList<ReservationStatus>()
-        .Select(i => new SelectListItem(i.Text, i.Value, c.Status.HasValue && i.Value == ((int)c.Status.Value).ToString())).ToList();
-    var sourceItems = Html.GetEnumSelectList<ReservationSource>()
-        .Select(i => new SelectListItem(i.Text, i.Value, c.Source.HasValue && i.Value == ((int)c.Source.Value).ToString())).ToList();
+    var areas = await Db.Areas.AsNoTracking().Include(a => a.Tables).OrderBy(a => a.AreaId).ToListAsync();
+    var isManager = User.IsInRole(RoleNames.Manager);
 }
+<div class="mx-auto" style="max-width:960px">
+
 <div class="d-flex justify-content-between align-items-center mb-3">
     <h1 class="h3 mb-0">Reservations</h1>
-    <a class="btn btn-primary btn-sm" asp-action="Create">+ New reservation</a>
+    <a class="btn btn-primary btn-sm" asp-controller="Booking" asp-action="Index">+ New reservation</a>
 </div>
 
-<form method="get" class="card card-body mb-3">
-    <div class="row g-2">
-        <div class="col-md-3"><label class="form-label small">Guest name, email or phone</label>
-            <input name="Name" value="@c.Name" class="form-control form-control-sm" /></div>
-        <div class="col-md-2"><label class="form-label small">From</label>
-            <input type="date" name="From" value="@(c.From?.ToString("yyyy-MM-dd"))" class="form-control form-control-sm" /></div>
-        <div class="col-md-2"><label class="form-label small">To</label>
-            <input type="date" name="To" value="@(c.To?.ToString("yyyy-MM-dd"))" class="form-control form-control-sm" /></div>
-        <div class="col-md-2"><label class="form-label small">Status</label>
-            <select name="Status" class="form-select form-select-sm" asp-items="statusItems">
-                <option value="">Any</option></select></div>
-        <div class="col-md-2"><label class="form-label small">Source</label>
-            <select name="Source" class="form-select form-select-sm" asp-items="sourceItems">
-                <option value="">Any</option></select></div>
-        <div class="col-md-1"><label class="form-label small">Table</label>
-            <input name="TableName" value="@c.TableName" class="form-control form-control-sm" placeholder="M3" /></div>
-    </div>
-    <div class="mt-2"><button class="btn btn-sm btn-secondary" type="submit">Search</button>
-        <a class="btn btn-sm btn-link" asp-action="Index" asp-route-From="">Reset</a></div>
-</form>
+<partial name="_ReservationSearch" model="c" view-data="@(new ViewDataDictionary(ViewData) { { "ShowStatus", true } })" />
 
+<div id="resList" class="bk-area">
 @if (!Model.Any())
 {
     <p class="text-muted">No reservations match your search.</p>
 }
 else
 {
-    <table class="table table-hover align-middle">
-        <thead><tr><th>#</th><th>Sitting</th><th>Start</th><th>Guest</th><th>Guests</th><th>Source</th><th>Tables</th><th>Status</th><th></th></tr></thead>
+    DateOnly? lastDate = null;
+    var lastSitting = 0;
+    <table class="table align-middle bk-list">
+        <thead>
+            <tr>
+                <th class="d-none d-md-table-cell">#</th>
+                <th>Sitting</th>
+                <th>Start</th>
+                <th>Guest</th>
+                <th>Guests</th>
+                <th class="d-none d-md-table-cell">Source</th>
+                <th>Tables</th>
+                <th>Status</th>
+            </tr>
+        </thead>
         <tbody>
         @foreach (var r in Model)
         {
-            <tr>
-                <td>@r.ReservationId</td>
-                <td>@r.Sitting.SittingDate.ToString("ddd d MMM")<br /><span class="small text-muted">@r.Sitting.SittingType</span></td>
-                <td>@r.StartTime.ToString("h:mm tt")</td>
-                <td>@r.Customer.FullName<br /><span class="small text-muted">@r.Customer.PhoneNumber</span></td>
+            var actions = new BookingActionsModel
+            {
+                ReservationId = r.ReservationId,
+                SittingId = r.SittingId,
+                Status = r.Status,
+                FirstName = r.Customer.FirstName,
+                LastName = r.Customer.LastName,
+                Email = r.Customer.Email,
+                Phone = r.Customer.PhoneNumber,
+                Start = r.StartTime,
+                Minutes = r.DurationMinutes,
+                Guests = r.NumberOfGuests,
+                Source = r.Source.ToString(),
+                Requests = r.SpecialRequests,
+                RowVersion = r.RowVersion,
+                TableIds = r.ReservationTables.Select(rt => rt.TableId).ToList(),
+                UnavailableTableIds = unavailable.TryGetValue(r.ReservationId, out var taken) ? taken : new HashSet<int>(),
+                Areas = areas,
+                ReturnUrl = returnTo,
+                ColSpan = 8,
+                CanDelete = isManager
+            };
+
+            // A dark bar when a new day starts, and a light bar when a new sitting starts.
+            if (lastDate != r.Sitting.SittingDate)
+            {
+                var dayCount = Model.Count(x => x.Sitting.SittingDate == r.Sitting.SittingDate);
+                <tr class="table-secondary" style="--bs-table-bg:#c4c9ce">
+                    <td colspan="8" class="fw-semibold py-2">@r.Sitting.SittingDate.ToString("dddd d MMMM yyyy") <span class="fw-normal">&middot; @dayCount @(dayCount == 1 ? "booking" : "bookings")</span></td>
+                </tr>
+            }
+            if (lastSitting != r.SittingId)
+            {
+                var sittingCount = Model.Count(x => x.SittingId == r.SittingId);
+                <tr class="table-primary">
+                    <td colspan="8" class="small fw-semibold">@r.Sitting.Name <span class="fw-normal">&middot; @r.Sitting.StartTime.ToString("h:mm tt") to @r.Sitting.EndTime.ToString("h:mm tt") &middot; @sittingCount @(sittingCount == 1 ? "booking" : "bookings")</span></td>
+                </tr>
+            }
+            lastDate = r.Sitting.SittingDate;
+            lastSitting = r.SittingId;
+
+            <tr class="bk-main @(r.Status == ReservationStatus.Cancelled ? "text-muted" : "")">
+                <td class="d-none d-md-table-cell">@r.ReservationId</td>
+                <td><partial name="_SittingLabel" model="r" /></td>
+                <td>@r.StartTime.ToString("h:mm tt")<br /><span class="small text-muted">@r.DurationMinutes min</span></td>
+                <td>@r.Customer.FullName<br /><span class="small text-muted">@r.Customer.PhoneNumber<span class="d-none d-lg-inline"> &middot; @r.Customer.Email</span></span></td>
                 <td>@r.NumberOfGuests</td>
-                <td>@r.Source</td>
-                <td>@(string.Join(", ", r.ReservationTables.Select(rt => rt.Table.TableName).OrderBy(n => n)))</td>
+                <td class="d-none d-md-table-cell">@r.Source</td>
+                <td>@(r.ReservationTables.Any() ? string.Join(", ", r.ReservationTables.Select(rt => rt.Table.TableName).OrderBy(n => n)) : "-")</td>
                 <td><span class="badge @UiHelpers.StatusBadge(r.Status)">@r.Status</span></td>
-                <td class="text-end">
-                    <div class="d-flex flex-wrap gap-1 justify-content-end">
-                        <button class="btn btn-sm btn-outline-secondary" type="button" data-bs-toggle="collapse" data-bs-target="#details-@r.ReservationId">Details</button>
-                        @if (r.Status is ReservationStatus.Pending or ReservationStatus.Confirmed)
-                        {
-                            <a class="btn btn-sm btn-outline-primary" asp-action="Edit" asp-route-id="@r.ReservationId">Edit</a>
-                        }
-                        @if (r.Status != ReservationStatus.Cancelled && r.Status != ReservationStatus.Completed)
-                        {
-                            <a class="btn btn-sm btn-outline-primary" asp-controller="Allocation" asp-action="Allocate" asp-route-id="@r.ReservationId">Assign tables</a>
-                        }
-                        @if (r.Status == ReservationStatus.Pending)
-                        {
-                            <form asp-action="Confirm" asp-route-id="@r.ReservationId" method="post" class="d-inline">
-                                <input type="hidden" name="returnTo" value="@returnTo" /><button class="btn btn-sm btn-primary">Confirm</button></form>
-                        }
-                        @if (r.Status is ReservationStatus.Pending or ReservationStatus.Confirmed)
-                        {
-                            <form asp-action="Seat" asp-route-id="@r.ReservationId" method="post" class="d-inline">
-                                <input type="hidden" name="returnTo" value="@returnTo" /><button class="btn btn-sm btn-info">Seat</button></form>
-                            <form asp-action="Cancel" asp-route-id="@r.ReservationId" method="post" class="d-inline">
-                                <input type="hidden" name="returnTo" value="@returnTo" /><button class="btn btn-sm btn-outline-danger">Cancel</button></form>
-                        }
-                        @if (r.Status == ReservationStatus.Seated)
-                        {
-                            <form asp-action="Complete" asp-route-id="@r.ReservationId" method="post" class="d-inline">
-                                <input type="hidden" name="returnTo" value="@returnTo" /><button class="btn btn-sm btn-success">Complete</button></form>
-                        }
-                        @if (User.IsInRole(RoleNames.Manager))
-                        {
-                            <form asp-action="Delete" asp-route-id="@r.ReservationId" method="post" class="d-inline"
-                                  onsubmit="return confirm('Delete this reservation permanently?');">
-                                <button class="btn btn-sm btn-outline-secondary">Delete</button></form>
-                        }
-                    </div>
-                </td>
             </tr>
-            <tr>
-                <td colspan="9" class="p-0 border-0">
-                    <div class="collapse" id="details-@r.ReservationId">
-                        <div class="card card-body bg-light my-2">
-                            <dl class="row mb-0">
-                                <dt class="col-sm-3">Sitting</dt><dd class="col-sm-9">@r.Sitting.DisplayName</dd>
-                                <dt class="col-sm-3">Time</dt><dd class="col-sm-9">@r.StartTime.ToString("h:mm tt") to @r.EndTime.ToString("h:mm tt") (@r.DurationMinutes min)</dd>
-                                <dt class="col-sm-3">Guests</dt><dd class="col-sm-9">@r.NumberOfGuests</dd>
-                                <dt class="col-sm-3">Source</dt><dd class="col-sm-9">@r.Source</dd>
-                                <dt class="col-sm-3">Guest</dt><dd class="col-sm-9">@r.Customer.FullName</dd>
-                                <dt class="col-sm-3">Email</dt><dd class="col-sm-9">@r.Customer.Email</dd>
-                                <dt class="col-sm-3">Phone</dt><dd class="col-sm-9">@r.Customer.PhoneNumber</dd>
-                                <dt class="col-sm-3">Notes</dt><dd class="col-sm-9">@(string.IsNullOrWhiteSpace(r.SpecialRequests) ? "-" : r.SpecialRequests)</dd>
-                                <dt class="col-sm-3">Tables</dt>
-                                <dd class="col-sm-9">
-                                    @if (r.ReservationTables.Any())
-                                    {
-                                        @(string.Join(", ", r.ReservationTables.Select(rt => rt.Table.TableName + " (" + rt.Table.Area.AreaName + ")").OrderBy(n => n)))
-                                    }
-                                    else { <span class="text-muted">None assigned</span> }
-                                </dd>
-                            </dl>
-                        </div>
-                    </div>
-                </td>
-            </tr>
+            @if (!string.IsNullOrWhiteSpace(r.SpecialRequests))
+            {
+                <tr><td colspan="8" class="text-muted small pt-0">Request: @r.SpecialRequests</td></tr>
+            }
+            <partial name="_BookingActions" model="actions" />
         }
         </tbody>
     </table>
+}
+</div>
+
+</div>
+
+@section Scripts {
+    <script src="~/js/booking-actions.js" asp-append-version="true"></script>
 }

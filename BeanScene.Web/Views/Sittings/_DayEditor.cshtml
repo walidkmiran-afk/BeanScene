@@ -1,0 +1,103 @@
+﻿@using BeanScene.Web.Controllers
+@model ScheduleViewModel
+@if (Model.Selected.HasValue)
+{
+    var di = 0;
+    var sel = Model.Selected.Value;
+    var items = Model.SelectedSittings;
+    var anyChanged = items.Any(i => i.Sitting.IsCustomised && i.Sitting.SittingType != SittingType.Special);
+    var openItems = items.Where(i => !i.Sitting.IsClosed).ToList();
+    var activeBookings = Model.DayBookings.Where(b => b.Status != ReservationStatus.Cancelled).ToList();
+    var cancelledCount = Model.DayBookings.Count(b => b.Status == ReservationStatus.Cancelled);
+    var openSeats = openItems.Sum(i => i.Sitting.Capacity);
+    var guestsBooked = activeBookings.Sum(b => b.Guests);
+    var dayState = items.Count == 0 ? "No sittings yet"
+        : items.All(i => i.Sitting.IsClosed) ? "Closed"
+        : items.Any(i => i.Sitting.IsCustomised || i.Sitting.SittingType == SittingType.Special) ? "Changed from the weekly hours"
+        : "Normal (weekly hours)";
+
+    <div class="card mb-3 mx-auto" style="max-width:660px;font-size:.8rem">
+        <form asp-action="SaveDay" method="post" id="dayForm">
+            <input type="hidden" name="date" value="@sel.ToString("yyyy-MM-dd")" />
+            <div class="card-header py-2">
+                <div class="d-flex flex-wrap justify-content-between align-items-center gap-2">
+                    <strong>@sel.ToString("dddd d MMMM yyyy")</strong>
+                    <div class="d-flex flex-wrap gap-1">
+                        <button type="button" id="dayCloseAll" class="btn btn-outline-secondary btn-sm py-0">Close whole day</button>
+                        <button type="button" id="dayAddSpecial" class="btn btn-outline-primary btn-sm py-0">+ Add sitting</button>
+                        <span id="dayReset">
+                        @if (anyChanged)
+                        {
+                            <button type="submit" formaction="@Url.Action("ResetDay")" formnovalidate class="btn btn-outline-warning btn-sm py-0" onclick="return confirm('Reset this day to the weekly hours? Bookings that fall outside the weekly times will be cancelled.')">Reset to weekly hours</button>
+                        }
+                        </span>
+                    </div>
+                </div>
+                <div class="text-muted mt-1" id="dayStats">
+                    @dayState &middot;
+                    <strong>@activeBookings.Count</strong> bookings &middot;
+                    <strong>@guestsBooked</strong> guests &middot;
+                    <strong>@Math.Max(openSeats - guestsBooked, 0)</strong> of <strong>@openSeats</strong> seats left
+                    @if (cancelledCount > 0)
+                    {
+                        <span>&middot; @cancelledCount cancelled</span>
+                    }
+                </div>
+            </div>
+            <div class="card-body py-2">
+                @if (items.Count == 0)
+                {
+                    <p class="text-muted small mb-2 text-center" id="dayEmpty">No sittings on this day yet. Regular sittings are created from the weekly hours once the date is within 90 days. You can add a sitting now.</p>
+                }
+                <table class="table table-sm table-borderless align-middle mb-2 mx-auto" style="width:auto">
+                    <thead><tr class="text-muted"><th>Label</th><th></th><th>From</th><th>To</th><th>Seats</th><th title="Click a number to see the bookings">Bookings</th><th></th></tr></thead>
+                    <tbody id="dayRows">
+                    @foreach (var item in items)
+                    {
+                        var s = item.Sitting;
+                        <tr class="dy-row">
+                            <td>
+                                <input type="hidden" name="sittings[@di].SittingId" value="@s.SittingId" />
+                                <input type="hidden" name="sittings[@di].IsOpen" value="@(s.IsClosed ? "false" : "true")" class="dy-flag" />
+                                <input type="text" name="sittings[@di].Label" value="@s.Name" maxlength="40" title="Sitting name" class="form-control form-control-sm py-0 dy-label" style="width:120px;font-size:.75rem;height:22px" />
+                            </td>
+                            <td><button type="button" class="btn btn-sm p-0 dy-btn" style="width:52px;height:22px;font-size:.7rem">@(s.IsClosed ? "Closed" : "Open")</button></td>
+                            <td><input type="text" name="sittings[@di].StartTime" value="@s.StartTime.ToString("HH:mm")" maxlength="5" pattern="([01][0-9]|2[0-3]):[0-5][0-9]" title="Start time, for example 07:00" class="form-control form-control-sm p-0 text-center dy-field" style="width:56px;font-size:.75rem;height:22px" /></td>
+                            <td><input type="text" name="sittings[@di].EndTime" value="@s.EndTime.ToString("HH:mm")" maxlength="5" pattern="([01][0-9]|2[0-3]):[0-5][0-9]" title="End time, for example 11:00" class="form-control form-control-sm p-0 text-center dy-field" style="width:56px;font-size:.75rem;height:22px" /></td>
+                            <td><input type="number" name="sittings[@di].Capacity" value="@s.Capacity" min="1" max="500" title="Seats" class="form-control form-control-sm p-0 text-center dy-field" style="width:46px;font-size:.75rem;height:22px" /></td>
+                            <td class="text-center">
+                                @if (Model.DayBookings.Any(b => b.SittingId == s.SittingId))
+                                {
+                                    <button type="button" class="btn btn-link btn-sm p-0 bk-open" style="font-size:.8rem" data-sitting="@s.SittingId" title="Show the bookings for this sitting">@Model.DayBookings.Count(b => b.SittingId == s.SittingId && b.Status != ReservationStatus.Cancelled)</button>
+                                }
+                                else
+                                {
+                                    <span class="text-muted">0</span>
+                                }
+                            </td>
+                            <td>
+                                @if (s.SittingType == SittingType.Special)
+                                {
+                                    <button type="button" class="btn btn-sm btn-outline-secondary py-0 px-1 dy-remove" style="line-height:1.2" title="Remove this sitting">&times;</button>
+                                }
+                            </td>
+                        </tr>
+                        di++;
+                    }
+                    </tbody>
+                </table>
+
+                <div id="dayWarn" class="alert alert-danger py-2 px-3 small" style="display:none">
+                    <strong>Saving will cancel these bookings</strong>, because their time is no longer inside an open sitting:
+                    <ul id="dayWarnList" class="mb-2 mt-1"></ul>
+                    <button type="button" id="dayConfirm" class="btn btn-danger btn-sm py-0">Confirm and save</button>
+                    <button type="button" id="dayBack" class="btn btn-outline-secondary btn-sm py-0 ms-1">Back</button>
+                </div>
+
+                <div class="text-center">
+                    <button type="submit" class="btn btn-primary btn-sm py-0">Save day</button>
+                </div>
+            </div>
+        </form>
+    </div>
+}

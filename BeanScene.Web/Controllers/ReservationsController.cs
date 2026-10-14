@@ -4,21 +4,18 @@ using BeanScene.Web.Models.ViewModels;
 using BeanScene.Web.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Mvc.Rendering;
 
 namespace BeanScene.Web.Controllers;
 
-/// <summary>Staff and managers capture, search and update reservations.</summary>
+/// <summary>Staff and managers search and update reservations. New bookings are made on the Book a table page.</summary>
 [Authorize(Roles = RoleNames.StaffOrManager)]
 public class ReservationsController : Controller
 {
     private readonly IReservationService _reservations;
-    private readonly ISittingService _sittings;
 
-    public ReservationsController(IReservationService reservations, ISittingService sittings)
+    public ReservationsController(IReservationService reservations)
     {
         _reservations = reservations;
-        _sittings = sittings;
     }
 
     // GET /Reservations?Name=...&Status=...   (search)
@@ -30,81 +27,36 @@ public class ReservationsController : Controller
             && !criteria.SittingId.HasValue)
             criteria.From = RestaurantClock.Today;
 
+        var list = await _reservations.SearchAsync(criteria);
+
         ViewBag.Criteria = criteria;
-        return View(await _reservations.SearchAsync(criteria));
+        ViewBag.Unavailable = await UnavailableTablesAsync(list);
+        return View(list);
     }
 
-    // GET /Reservations/Create
-    [HttpGet]
-    public async Task<IActionResult> Create(int? sittingId)
-    {
-        var input = new ReservationInput { SittingId = sittingId ?? 0 };
-        await LoadSittingsAsync(input.SittingId, includePast: false);
-        return View(input);
-    }
-
-    // POST /Reservations/Create
+    // POST /Reservations/EditFromSchedule  (the Edit form under a booking)
     [HttpPost]
-    public async Task<IActionResult> Create(ReservationInput input)
+    public async Task<IActionResult> EditFromSchedule(ReservationInput input, string? returnTo)
     {
-        if (ModelState.IsValid)
+        var back = !string.IsNullOrEmpty(returnTo) && Url.IsLocalUrl(returnTo) ? returnTo : Url.Action("Index", "Sittings")!;
+        if (!ModelState.IsValid)
         {
-            var result = await _reservations.CreateAsync(input);
-            if (result.Succeeded)
-            {
-                TempData["Success"] = "Reservation created (Pending). Assign tables when ready.";
-                return RedirectToAction(nameof(Index));
-            }
-            foreach (var e in result.Errors) ModelState.AddModelError(string.Empty, e);
+            TempData["Error"] = string.Join(" ", ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage));
+            return LocalRedirect(back);
         }
-        await LoadSittingsAsync(input.SittingId, includePast: false);
-        return View(input);
+        var result = await _reservations.UpdateAsync(input);
+        TempData[result.Succeeded ? "Success" : "Error"] = result.Succeeded ? "Booking updated." : string.Join(" ", result.Errors);
+        return LocalRedirect(back);
     }
 
-    // GET /Reservations/Edit/5
-    [HttpGet]
-    public async Task<IActionResult> Edit(int id)
-    {
-        var r = await _reservations.GetAsync(id);
-        if (r == null) return NotFound();
-
-        var input = new ReservationInput
-        {
-            ReservationId = r.ReservationId,
-            SittingId = r.SittingId,
-            StartTime = r.StartTime,
-            DurationMinutes = r.DurationMinutes,
-            NumberOfGuests = r.NumberOfGuests,
-            Source = r.Source,
-            FirstName = r.Customer.FirstName,
-            LastName = r.Customer.LastName,
-            Email = r.Customer.Email,
-            PhoneNumber = r.Customer.PhoneNumber,
-            SpecialRequests = r.SpecialRequests,
-            RowVersion = r.RowVersion
-        };
-        await LoadSittingsAsync(input.SittingId, includePast: true);
-        return View(input);
-    }
-
-    // POST /Reservations/Edit/5
+    // POST /Reservations/AssignFromSchedule  (the Tables form under a booking)
     [HttpPost]
-    public async Task<IActionResult> Edit(int id, ReservationInput input)
+    public async Task<IActionResult> AssignFromSchedule(int id, List<int> selectedTableIds, string? returnTo)
     {
-        if (id != input.ReservationId) return BadRequest();
-
-        if (ModelState.IsValid)
-        {
-            var result = await _reservations.UpdateAsync(input);
-            if (result.Succeeded)
-            {
-                TempData["Success"] = "Reservation updated.";
-                return RedirectToAction(nameof(Index));
-            }
-            foreach (var e in result.Errors) ModelState.AddModelError(string.Empty, e);
-        }
-        await LoadSittingsAsync(input.SittingId, includePast: true);
-        return View(input);
+        var result = await _reservations.AssignTablesAsync(id, selectedTableIds ?? new List<int>());
+        TempData[result.Succeeded ? "Success" : "Error"] = result.Succeeded ? "Tables assigned." : string.Join(" ", result.Errors);
+        if (!string.IsNullOrEmpty(returnTo) && Url.IsLocalUrl(returnTo)) return LocalRedirect(returnTo);
+        return RedirectToAction(nameof(Index));
     }
 
     [HttpPost] public Task<IActionResult> Confirm(int id, string? returnTo) => ChangeStatus(id, ReservationStatus.Confirmed, returnTo);
@@ -124,27 +76,40 @@ public class ReservationsController : Controller
 
     // POST /Reservations/Delete/5 (Manager only)
     [HttpPost, Authorize(Roles = RoleNames.Manager)]
-    public async Task<IActionResult> Delete(int id)
+    public async Task<IActionResult> Delete(int id, string? returnTo)
     {
         var result = await _reservations.DeleteAsync(id);
         TempData[result.Succeeded ? "Success" : "Error"] = result.Succeeded ? "Reservation deleted." : string.Join(" ", result.Errors);
+        if (!string.IsNullOrEmpty(returnTo) && Url.IsLocalUrl(returnTo)) return LocalRedirect(returnTo);
         return RedirectToAction(nameof(Index));
     }
 
-    // GET /Reservations/FollowUp  - Pending reservations, soonest sitting first (linked list + merge sort)
-    public async Task<IActionResult> FollowUp(string? lastName)
+    // GET /Reservations/FollowUp  - Pending reservations, soonest sitting first (linked list + merge sort),
+    // searched with the same fields as the Reservations page.
+    public async Task<IActionResult> FollowUp(ReservationSearchCriteria criteria)
     {
-        var queue = new PendingFollowUpQueue(await _reservations.GetPendingAsync());
-        ViewBag.LastName = lastName;
-        ViewBag.Found = string.IsNullOrWhiteSpace(lastName) ? null : queue.FindByLastName(lastName.Trim());
+        criteria.Status = ReservationStatus.Pending;   // this list is always the pending ones
+
+        var searching = !string.IsNullOrWhiteSpace(criteria.Name) || criteria.From.HasValue || criteria.To.HasValue
+            || criteria.Source.HasValue || !string.IsNullOrWhiteSpace(criteria.TableName);
+
+        var pending = await _reservations.SearchAsync(criteria);
+        var queue = new PendingFollowUpQueue(pending);
+
+        ViewBag.Criteria = criteria;
+        ViewBag.Searching = searching;
+        ViewBag.TotalPending = searching ? (await _reservations.GetPendingAsync()).Count : pending.Count;
+        ViewBag.Unavailable = await UnavailableTablesAsync(pending);
         return View(queue);
     }
 
-    private async Task LoadSittingsAsync(int selected, bool includePast)
+    // Tables held by another booking at an overlapping time (greyed out in the table picker),
+    // worked out for each booking that can still be given tables.
+    private async Task<Dictionary<int, HashSet<int>>> UnavailableTablesAsync(IEnumerable<Reservation> reservations)
     {
-        var from = includePast ? RestaurantClock.Today.AddDays(-30) : RestaurantClock.Today;
-        var items = await _sittings.ListAsync(from);
-        ViewBag.Sittings = new SelectList(items.Select(i => i.Sitting).Where(s => !s.IsClosed || s.SittingId == selected),
-            nameof(Sitting.SittingId), nameof(Sitting.DisplayName), selected);
+        var result = new Dictionary<int, HashSet<int>>();
+        foreach (var r in reservations.Where(r => r.Status != ReservationStatus.Cancelled && r.Status != ReservationStatus.Completed))
+            result[r.ReservationId] = await _reservations.GetUnavailableTableIdsAsync(r.ReservationId);
+        return result;
     }
 }

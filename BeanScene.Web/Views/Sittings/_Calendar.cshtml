@@ -1,0 +1,93 @@
+﻿@using System.Globalization
+@using BeanScene.Web.Controllers
+@using BeanScene.Web.Data
+@using Microsoft.EntityFrameworkCore
+@inject ApplicationDbContext Db
+@model ScheduleViewModel
+@{
+    var today = Model.Today;
+    var calFrom = Model.Days.First().Date;
+    var calTo = Model.Days.Last().Date;
+    var bookingCounts = await Db.Reservations.AsNoTracking()
+        .Where(r => r.Sitting.SittingDate >= calFrom && r.Sitting.SittingDate <= calTo && r.Status != ReservationStatus.Cancelled)
+        .GroupBy(r => r.Sitting.SittingDate)
+        .Select(g => new { Date = g.Key, Count = g.Count() })
+        .ToDictionaryAsync(x => x.Date, x => x.Count);
+
+    var days = new[] { DayOfWeek.Monday, DayOfWeek.Tuesday, DayOfWeek.Wednesday, DayOfWeek.Thursday, DayOfWeek.Friday, DayOfWeek.Saturday, DayOfWeek.Sunday };
+    var firstOfMonth = new DateOnly(Model.Year, Model.Month, 1);
+    var prev = firstOfMonth.AddMonths(-1);
+    var next = firstOfMonth.AddMonths(1);
+    var monthNames = CultureInfo.InvariantCulture.DateTimeFormat;
+    string T(TimeOnly t) => t.Minute == 0 ? t.Hour.ToString() : t.ToString("H:mm");
+}
+<form method="get" asp-action="Index" id="monthNav" class="d-flex align-items-center justify-content-center gap-2 mb-2">
+    <a class="btn btn-sm btn-outline-secondary" asp-action="Index" asp-route-year="@prev.Year" asp-route-month="@prev.Month">&lt;</a>
+    <select name="month" class="form-select form-select-sm" style="width:auto" onchange="this.form.submit()">
+        @for (var mi = 1; mi <= 12; mi++)
+        {
+            <option value="@mi" selected="@(mi == Model.Month)">@monthNames.GetMonthName(mi)</option>
+        }
+    </select>
+    <select name="year" class="form-select form-select-sm" style="width:auto" onchange="this.form.submit()">
+        @for (var yi = Math.Min(today.Year - 1, Model.Year); yi <= Math.Max(today.Year + 5, Model.Year); yi++)
+        {
+            <option value="@yi" selected="@(yi == Model.Year)">@yi</option>
+        }
+    </select>
+    <a class="btn btn-sm btn-outline-secondary" asp-action="Index" asp-route-year="@next.Year" asp-route-month="@next.Month">&gt;</a>
+    <a class="btn btn-sm btn-outline-secondary js-day" asp-action="Index" asp-route-selected="@today.ToString("yyyy-MM-dd")">Today</a>
+</form>
+<div class="small text-muted mb-2 text-center">
+    <span class="cal-swatch" style="background:#fff"></span>Normal
+    <span class="cal-swatch ms-2" style="background:#fff3cd"></span>Changed
+    <span class="cal-swatch ms-2" style="background:#e9ecef"></span>Closed
+</div>
+
+<div style="overflow-x:auto" id="calWrap">
+<table class="table table-bordered mb-3 cal mx-auto" style="table-layout:fixed;width:476px">
+    <thead>
+        <tr class="text-center small text-muted">
+            @foreach (var d in days)
+            {
+                <th style="width:68px;padding:2px 0">@d.ToString().Substring(0, 3)</th>
+            }
+        </tr>
+    </thead>
+    <tbody>
+    @for (var r = 0; r < 6; r++)
+    {
+        <tr>
+        @for (var c = 0; c < 7; c++)
+        {
+            var d = Model.Days[r * 7 + c];
+            var any = d.Sittings.Count > 0;
+            var allClosed = any && d.Sittings.All(s => s.IsClosed);
+            var custom = d.Sittings.Any(s => s.IsCustomised || s.SittingType == SittingType.Special);
+            var closedDay = allClosed || (!any && d.Date >= today);
+            var isSelected = Model.Selected.HasValue && Model.Selected.Value == d.Date;
+            var bg = closedDay ? "#e9ecef" : custom ? "#fff3cd" : "#fff";
+            var style = "background:" + bg + ";" + (d.InMonth ? "" : "opacity:.5;") + (isSelected ? "outline:2px solid #0d6efd;outline-offset:-2px;" : "");
+            <td style="@style">
+                <a class="cal-day js-day" asp-action="Index" asp-route-year="@d.Date.Year" asp-route-month="@d.Date.Month" asp-route-selected="@d.Date.ToString("yyyy-MM-dd")">
+                    <div class="@(d.Date == today ? "fw-bold text-primary" : "fw-semibold")">@d.Date.Day</div>
+                    @foreach (var s in d.Sittings)
+                    {
+                        <div class="@(s.IsClosed ? "text-muted text-decoration-line-through" : "")@(d.Projected ? " fst-italic" : "")">@s.Name.Substring(0, 1): @T(s.StartTime)-@T(s.EndTime)</div>
+                    }
+                    @if (closedDay)
+                    {
+                        <div class="text-muted">Closed</div>
+                    }
+                    @if (bookingCounts.TryGetValue(d.Date, out var dayBookings))
+                    {
+                        <div class="fw-semibold text-primary">@dayBookings @(dayBookings == 1 ? "booking" : "bookings")</div>
+                    }
+                </a>
+            </td>
+        }
+        </tr>
+    }
+    </tbody>
+</table>
+</div>

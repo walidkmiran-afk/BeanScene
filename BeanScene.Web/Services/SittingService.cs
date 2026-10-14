@@ -66,7 +66,8 @@ public class SittingService : ISittingService
             StartTime = form.StartTime,
             EndTime = form.EndTime,
             Capacity = form.Capacity,
-            IsClosed = form.IsClosed
+            IsClosed = form.IsClosed,
+            IsCustomised = true
         });
         await _db.SaveChangesAsync();
         return OperationResult.Ok();
@@ -91,6 +92,7 @@ public class SittingService : ISittingService
         sitting.EndTime = form.EndTime;
         sitting.Capacity = form.Capacity;
         sitting.IsClosed = form.IsClosed;
+        sitting.IsCustomised = true;
 
         try
         {
@@ -109,6 +111,7 @@ public class SittingService : ISittingService
         var sitting = await GetAsync(id);
         if (sitting == null) return OperationResult.Fail("Sitting not found.");
         sitting.IsClosed = closed;
+        sitting.IsCustomised = true;
         try
         {
             await _db.SaveChangesAsync();

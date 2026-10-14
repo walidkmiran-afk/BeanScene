@@ -10,7 +10,8 @@ using Microsoft.EntityFrameworkCore;
 
 namespace BeanScene.Web.Controllers;
 
-/// <summary>The public "book online" page used by guests and members (source = Online).</summary>
+/// <summary>The booking page. Guests and members book online (source = Online) and see a confirmation page.
+/// Staff and managers choose the source and stay on the page, so they can book one after another.</summary>
 [AllowAnonymous]
 public class BookingController : Controller
 {
@@ -28,10 +29,16 @@ public class BookingController : Controller
         _db = db;
     }
 
+    private bool IsStaff => User.IsInRole(RoleNames.Staff) || User.IsInRole(RoleNames.Manager);
+
     [HttpGet]
     public async Task<IActionResult> Index(int? sittingId)
     {
-        var input = new ReservationInput { Source = ReservationSource.Online, SittingId = sittingId ?? 0 };
+        var input = new ReservationInput
+        {
+            Source = IsStaff ? ReservationSource.Phone : ReservationSource.Online,
+            SittingId = sittingId ?? 0
+        };
         await PrefillFromMemberAsync(input);
         await LoadSittingsAsync(input.SittingId);
         return View(input);
@@ -40,7 +47,9 @@ public class BookingController : Controller
     [HttpPost]
     public async Task<IActionResult> Index(ReservationInput input)
     {
-        input.Source = ReservationSource.Online;
+        var staff = IsStaff;
+        if (!staff) input.Source = ReservationSource.Online;
+
         var memberId = CurrentMemberId();
         if (memberId != null)
         {
@@ -50,13 +59,32 @@ public class BookingController : Controller
             TryValidateModel(input);
         }
 
+        // The staff page saves in the background and asks for a JSON answer.
+        var background = Request.Headers["X-Requested-With"] == "fetch";
+
         if (ModelState.IsValid)
         {
             var result = await _reservations.CreateAsync(input, memberId);
             if (result.Succeeded)
-                return RedirectToAction(nameof(Confirmation), new { id = result.Value!.ReservationId });
+            {
+                if (!staff)
+                    return RedirectToAction(nameof(Confirmation), new { id = result.Value!.ReservationId });
+
+                var message = $"Booked: {input.FirstName} {input.LastName}, {input.NumberOfGuests} guests at {input.StartTime:h:mm tt} (Pending).";
+                if (background) return Json(new { ok = true, message });
+                TempData["Success"] = message;
+                return RedirectToAction(nameof(Index), new { sittingId = input.SittingId });
+            }
 
             foreach (var error in result.Errors) ModelState.AddModelError(string.Empty, error);
+        }
+
+        if (background)
+        {
+            var errors = ModelState.Values.SelectMany(v => v.Errors)
+                .Select(e => string.IsNullOrWhiteSpace(e.ErrorMessage) ? "Please check the form." : e.ErrorMessage)
+                .Distinct().ToList();
+            return Json(new { ok = false, errors });
         }
 
         await LoadSittingsAsync(input.SittingId);

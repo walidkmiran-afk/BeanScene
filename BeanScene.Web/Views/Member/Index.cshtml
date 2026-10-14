@@ -21,7 +21,7 @@ else
         {
             <tr>
                 <td>@r.Sitting.SittingDate.ToString("ddd d MMM yyyy")</td>
-                <td>@r.Sitting.SittingType</td>
+                <td><partial name="_SittingLabel" model="r" /></td>
                 <td>@r.StartTime.ToString("h:mm tt")</td>
                 <td>@r.NumberOfGuests</td>
                 <td><span class="badge @UiHelpers.StatusBadge(r.Status)">@r.Status</span></td>
@@ -48,7 +48,7 @@ else
         <tbody>
         @foreach (var r in past)
         {
-            <tr><td>@r.Sitting.SittingDate.ToString("ddd d MMM yyyy")</td><td>@r.Sitting.SittingType</td><td>@r.NumberOfGuests</td>
+            <tr><td>@r.Sitting.SittingDate.ToString("ddd d MMM yyyy")</td><td><partial name="_SittingLabel" model="r" /></td><td>@r.NumberOfGuests</td>
                 <td><span class="badge @UiHelpers.StatusBadge(r.Status)">@r.Status</span></td></tr>
         }
         </tbody>
