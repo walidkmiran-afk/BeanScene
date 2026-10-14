@@ -49,7 +49,16 @@ else
         @foreach (var r in past)
         {
             <tr><td>@r.Sitting.SittingDate.ToString("ddd d MMM yyyy")</td><td><partial name="_SittingLabel" model="r" /></td><td>@r.NumberOfGuests</td>
-                <td><span class="badge @UiHelpers.StatusBadge(r.Status)">@r.Status</span></td></tr>
+                <td>
+                    @if (r.Status is ReservationStatus.Pending or ReservationStatus.Confirmed)
+                    {
+                        <span class="badge bg-secondary">Past</span><div class="small text-muted">was @r.Status</div>
+                    }
+                    else
+                    {
+                        <span class="badge @UiHelpers.StatusBadge(r.Status)">@r.Status</span>
+                    }
+                </td></tr>
         }
         </tbody>
     </table>
