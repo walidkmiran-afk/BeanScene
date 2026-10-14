@@ -16,6 +16,7 @@ Screenshots: save images in docs/screenshots/ and delete the comment markers aro
 
 - **Intuitive.** Nothing needs instructions. The page shows what you can do, and only offers choices that are valid.
 - **No page changes for small jobs.** Editing, confirming, assigning tables, saving a day, adding a booking and managing accounts all happen in place. There are no pop-up windows, and nothing blocks the screen or closes by itself.
+- **Staff stay on the page, customers are slowed down on purpose.** Staff enter many bookings in a row, so their booking page stays put and clears itself for the next one. Customers don't need to make bookings rapidly, so they are not given that option. After a customer books, they are taken to a confirmation page that shows what they booked. They have to start a new booking from scratch if they want another one. Signing up works the same way. The customer goes to the homepage with a welcome message instead of staying on the form.
 - **One tool, used everywhere.** The booking buttons (Edit, Tables, Confirm, Seat, Complete, Cancel, Delete) are a single shared panel. The Sittings, Reservations and Follow-up pages all use it, so it looks and behaves the same everywhere. There are no separate Edit, Delete or Create pages. The one exception is Book a table.
 - **Several ways to do the same job.** Book a table is on the homepage and in the menu, and managers can also add a booking from a sitting on the Sittings page. Tables can be assigned from any booking list or from the Allocation page. Each person can use the way they are comfortable with.
 - **Friendly on every standard screen.** The pages are built to work in a desktop, laptop or tablet browser. Tables drop less important columns, and rows of buttons re-flow as the window gets smaller.
@@ -55,6 +56,7 @@ Screenshots: save images in docs/screenshots/ and delete the comment markers aro
 - New reservations cannot be made for a time that has already passed.
 - A booking's time never changes when sittings change. Only its sitting can change, if another open sitting covers its start time.
 - A cancelled booking cannot be brought back, because its time and tables are free for someone else. A new booking has to be made.
+- A staff login is a username plus `@beanscene.test`. A manager can change a staff member's username, but never their email, and the username must not already be taken. Members log in with their email, so a manager can change that instead.
 - Roles: **Manager**, **Staff** and **Member**, enforced with `[Authorize(Roles = ...)]`.
 - Concurrent edits are detected with a row version, so two staff members cannot silently overwrite each other.
 

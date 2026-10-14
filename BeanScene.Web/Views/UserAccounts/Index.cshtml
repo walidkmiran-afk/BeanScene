@@ -78,6 +78,7 @@
                             <tr class="acct-row"
                                 data-id="@a.UserId" data-name="@a.FullName" data-first="@a.FirstName" data-last="@a.LastName"
                                 data-email="@a.Email" data-phone="@phone"
+                                data-staff="@(a.IsStaff ? "1" : "0")" data-username="@(a.Email.Split('@')[0])"
                                 data-q="@($"{a.FullName} {a.Email} {phone}".ToLowerInvariant())" data-d="@digits">
                                 <td>
                                     <div class="fw-semibold">@a.FullName</div>
@@ -112,10 +113,18 @@
                 <div class="row g-2">
                     <div class="col-sm-6 col-lg-3"><label class="form-label small mb-0">First name</label><input name="FirstName" class="form-control form-control-sm" required maxlength="60" /></div>
                     <div class="col-sm-6 col-lg-3"><label class="form-label small mb-0">Last name</label><input name="LastName" class="form-control form-control-sm" required maxlength="60" /></div>
-                    <div class="col-sm-6 col-lg-3"><label class="form-label small mb-0">Email</label><input name="Email" type="email" class="form-control form-control-sm" required maxlength="256" /></div>
+                    <div class="col-sm-6 col-lg-3 acct-member-only"><label class="form-label small mb-0">Email</label><input name="Email" type="email" class="form-control form-control-sm" required maxlength="256" /></div>
+                    <div class="col-sm-6 col-lg-3 acct-staff-only" hidden>
+                        <label class="form-label small mb-0">Username</label>
+                        <div class="input-group input-group-sm">
+                            <input name="username" class="form-control" autocomplete="off" minlength="3" maxlength="40" />
+                            <span class="input-group-text">@@beanscene.test</span>
+                        </div>
+                    </div>
                     <div class="col-sm-6 col-lg-3"><label class="form-label small mb-0">Phone</label><input name="PhoneNumber" class="form-control form-control-sm" /></div>
                 </div>
-                <div class="form-text">Changing the email also changes the login name. They will need to log in again.</div>
+                <div class="form-text acct-member-only">Changing the email also changes the login name. They will need to log in again.</div>
+                <div class="form-text acct-staff-only" hidden>Changing the username changes how they log in. A staff email can't be edited.</div>
                 <div class="acct-err alert alert-danger py-1 mt-2 mb-0" hidden></div>
                 <div class="mt-2">
                     <button class="btn btn-primary btn-sm">Save</button>
