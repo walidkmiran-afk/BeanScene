@@ -1,36 +1,148 @@
-﻿@model List<AccountRowViewModel>
-@{ ViewData["Title"] = "Accounts"; }
-<div class="d-flex justify-content-between align-items-center mb-3">
-    <h1 class="h3 mb-0">Accounts</h1>
-    <a class="btn btn-primary btn-sm" asp-action="Create">+ New staff account</a>
-</div>
-<p class="text-muted">Staff and member logins. A disabled account cannot log in, and its history is kept. Manager accounts are not listed here.</p>
-<div class="table-responsive">
-    <table class="table align-middle">
-        <thead><tr><th>Name</th><th>Role</th><th>Email</th><th>Phone</th><th>Status</th><th></th></tr></thead>
-        <tbody>
-        @foreach (var a in Model)
+﻿@model List<AccountItem>
+@{
+    ViewData["Title"] = "Accounts";
+    var panes = new[] { (Key: "staff", Label: "Staff", IsStaff: true), (Key: "members", Label: "Members", IsStaff: false) };
+}
+<style>
+    .acct-panel > td { background: #f8f9fa; }
+</style>
+
+<div class="mx-auto" style="max-width: 960px;">
+    <div class="d-flex justify-content-between align-items-center mb-2">
+        <h1 class="h3 mb-0">Accounts</h1>
+        <button type="button" class="btn btn-primary btn-sm" data-act="new">+ New staff account</button>
+    </div>
+    <p class="text-muted small mb-2">A disabled account cannot log in, and its history is kept. Manager accounts are not listed here.</p>
+
+    <input id="acctSearch" type="search" class="form-control mb-3" placeholder="Search name, email or phone" autocomplete="off" />
+    <div id="acctMsg" role="status" hidden></div>
+
+    <div id="acctArea" data-toggle-url="@Url.Action("ToggleDisabled")">
+        @Html.AntiForgeryToken()
+
+        <div id="newPanel" class="card card-body mb-3" hidden>
+            <form method="post" asp-action="Create" data-acct="create">
+                <div class="fw-semibold mb-2">New staff account</div>
+                <div class="row g-2">
+                    <div class="col-sm-6"><label class="form-label small mb-0">First name</label><input name="FirstName" class="form-control form-control-sm" required maxlength="60" /></div>
+                    <div class="col-sm-6"><label class="form-label small mb-0">Last name</label><input name="LastName" class="form-control form-control-sm" required maxlength="60" /></div>
+                    <div class="col-sm-6">
+                        <label class="form-label small mb-0">Username</label>
+                        <div class="input-group input-group-sm">
+                            <input name="Username" class="form-control" autocomplete="off" required minlength="3" maxlength="40" />
+                            <span class="input-group-text">@@beanscene.test</span>
+                        </div>
+                    </div>
+                    <div class="col-sm-6"><label class="form-label small mb-0">Phone (optional)</label><input name="PhoneNumber" class="form-control form-control-sm" /></div>
+                    <div class="col-sm-6"><label class="form-label small mb-0">Password</label><input name="Password" type="password" class="form-control form-control-sm" autocomplete="new-password" required minlength="8" /></div>
+                </div>
+                <div class="form-text">Staff logins are test accounts: the username plus @@beanscene.test, no real email needed. The password needs 8+ characters with an uppercase letter, a digit and a symbol. Tell the staff member their password in person.</div>
+                <div class="acct-err alert alert-danger py-1 mt-2 mb-0" hidden></div>
+                <div class="mt-2">
+                    <button class="btn btn-primary btn-sm">Create account</button>
+                    <button type="button" class="btn btn-link btn-sm" data-act="cancel">Cancel</button>
+                </div>
+            </form>
+        </div>
+
+        <ul class="nav nav-tabs mb-2">
+            @foreach (var p in panes)
+            {
+                <li class="nav-item">
+                    <button type="button" class="nav-link" data-act="tab" data-tab="@p.Key">
+                        @p.Label <span class="badge rounded-pill text-bg-secondary" data-count="@p.Key">@Model.Count(a => a.IsStaff == p.IsStaff)</span>
+                    </button>
+                </li>
+            }
+        </ul>
+
+        @foreach (var p in panes)
         {
-            var toggle = a.IsDisabled ? "Enable" : "Disable";
-            <tr>
-                <td>@a.FullName</td>
-                <td>@a.Role</td>
-                <td>@a.Email</td>
-                <td>@a.PhoneNumber</td>
-                <td>
-                    @if (a.IsDisabled) { <span class="badge bg-secondary">Disabled</span> }
-                    else { <span class="badge bg-success">Active</span> }
-                </td>
-                <td class="text-end text-nowrap">
-                    <a class="btn btn-sm btn-outline-secondary" asp-action="Edit" asp-route-id="@a.UserId">Edit</a>
-                    <a class="btn btn-sm btn-outline-secondary" asp-action="ResetPassword" asp-route-id="@a.UserId">Reset password</a>
-                    <form asp-action="ToggleDisabled" asp-route-id="@a.UserId" method="post" class="d-inline"
-                          onsubmit="return confirm('@toggle this account?');">
-                        <button class="btn btn-sm @(a.IsDisabled ? "btn-outline-success" : "btn-outline-danger")">@toggle</button>
-                    </form>
-                </td>
-            </tr>
+            <div data-pane="@p.Key" @(p.Key == "staff" ? "" : "hidden")>
+                <div class="table-responsive">
+                    <table class="table align-middle">
+                        <thead>
+                            <tr>
+                                <th>Name</th>
+                                <th class="d-none d-md-table-cell">Email</th>
+                                <th class="d-none d-md-table-cell">Phone</th>
+                                <th>Status</th>
+                                <th></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                        @foreach (var a in Model.Where(x => x.IsStaff == p.IsStaff))
+                        {
+                            var phone = a.PhoneNumber ?? "";
+                            var digits = new string(phone.Where(char.IsDigit).ToArray());
+                            <tr class="acct-row"
+                                data-id="@a.UserId" data-name="@a.FullName" data-first="@a.FirstName" data-last="@a.LastName"
+                                data-email="@a.Email" data-phone="@phone"
+                                data-q="@($"{a.FullName} {a.Email} {phone}".ToLowerInvariant())" data-d="@digits">
+                                <td>
+                                    <div class="fw-semibold">@a.FullName</div>
+                                    <div class="small text-muted d-md-none">@a.Email</div>
+                                </td>
+                                <td class="d-none d-md-table-cell">@a.Email</td>
+                                <td class="d-none d-md-table-cell">@phone</td>
+                                <td>
+                                    @if (a.IsDisabled) { <span class="badge bg-secondary">Disabled</span> }
+                                    else { <span class="badge bg-success">Active</span> }
+                                </td>
+                                <td>
+                                    <div class="d-flex flex-wrap gap-1 justify-content-end">
+                                        <button type="button" class="btn btn-sm btn-outline-secondary" data-act="edit">Edit</button>
+                                        <button type="button" class="btn btn-sm btn-outline-secondary" data-act="reset">Reset password</button>
+                                        <button type="button" class="btn btn-sm @(a.IsDisabled ? "btn-outline-success" : "btn-outline-danger")" data-act="toggle">@(a.IsDisabled ? "Enable" : "Disable")</button>
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                            <tr class="acct-empty" hidden><td colspan="5" class="text-muted"></td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
         }
-        </tbody>
-    </table>
+
+        <template id="tpl-edit">
+            <form method="post" asp-action="Edit" data-acct="edit" class="py-2">
+                <div class="small fw-semibold mb-2">Edit <span class="acct-for"></span></div>
+                <input type="hidden" name="UserId" />
+                <div class="row g-2">
+                    <div class="col-sm-6 col-lg-3"><label class="form-label small mb-0">First name</label><input name="FirstName" class="form-control form-control-sm" required maxlength="60" /></div>
+                    <div class="col-sm-6 col-lg-3"><label class="form-label small mb-0">Last name</label><input name="LastName" class="form-control form-control-sm" required maxlength="60" /></div>
+                    <div class="col-sm-6 col-lg-3"><label class="form-label small mb-0">Email</label><input name="Email" type="email" class="form-control form-control-sm" required maxlength="256" /></div>
+                    <div class="col-sm-6 col-lg-3"><label class="form-label small mb-0">Phone</label><input name="PhoneNumber" class="form-control form-control-sm" /></div>
+                </div>
+                <div class="form-text">Changing the email also changes the login name. They will need to log in again.</div>
+                <div class="acct-err alert alert-danger py-1 mt-2 mb-0" hidden></div>
+                <div class="mt-2">
+                    <button class="btn btn-primary btn-sm">Save</button>
+                    <button type="button" class="btn btn-link btn-sm" data-act="cancel">Cancel</button>
+                </div>
+            </form>
+        </template>
+
+        <template id="tpl-reset">
+            <form method="post" asp-action="ResetPassword" data-acct="reset" class="py-2">
+                <div class="small fw-semibold mb-2">Reset password for <span class="acct-for"></span></div>
+                <input type="hidden" name="UserId" />
+                <div class="row g-2">
+                    <div class="col-sm-6 col-lg-4"><label class="form-label small mb-0">New password</label><input name="NewPassword" type="password" class="form-control form-control-sm" autocomplete="new-password" required minlength="8" /></div>
+                    <div class="col-sm-6 col-lg-4"><label class="form-label small mb-0">Confirm password</label><input name="ConfirmPassword" type="password" class="form-control form-control-sm" autocomplete="new-password" required /></div>
+                </div>
+                <div class="form-text">8+ characters with an uppercase letter, a digit and a symbol. Tell them the new password in person or by phone.</div>
+                <div class="acct-err alert alert-danger py-1 mt-2 mb-0" hidden></div>
+                <div class="mt-2">
+                    <button class="btn btn-primary btn-sm">Reset password</button>
+                    <button type="button" class="btn btn-link btn-sm" data-act="cancel">Cancel</button>
+                </div>
+            </form>
+        </template>
+    </div>
 </div>
+
+@section Scripts {
+    <script src="~/js/accounts.js"></script>
+}

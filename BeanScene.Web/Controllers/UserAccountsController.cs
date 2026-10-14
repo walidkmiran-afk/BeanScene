@@ -9,7 +9,8 @@ using Microsoft.EntityFrameworkCore;
 
 namespace BeanScene.Web.Controllers;
 
-/// <summary>Managers look after the Staff and Member logins: create staff, edit details, disable, reset passwords.</summary>
+/// <summary>Managers look after the Staff and Member logins: create staff, edit details, disable, reset passwords.
+/// Everything happens on the one Accounts page; the actions below only save and answer.</summary>
 [Authorize(Roles = RoleNames.Manager)]
 public class UserAccountsController : Controller
 {
@@ -26,7 +27,7 @@ public class UserAccountsController : Controller
 
     public async Task<IActionResult> Index()
     {
-        var rows = new List<AccountRowViewModel>();
+        var rows = new List<AccountItem>();
         foreach (var role in new[] { RoleNames.Staff, RoleNames.Member })
         {
             var inRole = await _users.GetUsersInRoleAsync(role);
@@ -37,46 +38,39 @@ public class UserAccountsController : Controller
             foreach (var u in inRole)
             {
                 var c = customers.FirstOrDefault(x => x.UserId == u.Id);
-                rows.Add(new AccountRowViewModel
+                rows.Add(new AccountItem
                 {
                     UserId = u.Id,
+                    FirstName = c?.FirstName ?? "",
+                    LastName = c?.LastName ?? "",
                     FullName = c?.FullName ?? u.Email ?? "",
                     Email = u.Email ?? "",
                     PhoneNumber = c?.PhoneNumber ?? "",
                     Role = role,
+                    IsStaff = role == RoleNames.Staff,
                     IsDisabled = IsDisabled(u)
                 });
             }
         }
-        return View(rows.OrderBy(r => r.Role).ThenBy(r => r.FullName).ToList());
+        return View(rows.OrderBy(r => r.FullName).ToList());
     }
 
     // ---- create a staff account ---------------------------------------------------
 
-    [HttpGet]
-    public IActionResult Create() => View(new CreateStaffViewModel());
-
     [HttpPost]
     public async Task<IActionResult> Create(CreateStaffViewModel model)
     {
-        if (!ModelState.IsValid) return View(model);
+        if (!ModelState.IsValid) return Fail(Errors());
 
         var email = model.Username.Trim().ToLower() + "@beanscene.test";
         var lower = email.ToLower();
         if (await _db.Customers.AnyAsync(c => c.Email.ToLower() == lower) || await _users.FindByEmailAsync(email) != null)
-        {
-            ModelState.AddModelError(nameof(model.Username), "That username is already in use.");
-            return View(model);
-        }
+            return Fail("That username is already in use.");
 
         var phone = ReservationService.NormalizePhone(model.PhoneNumber ?? "");
         var user = new ApplicationUser { UserName = email, Email = email, EmailConfirmed = true, PhoneNumber = phone };
         var create = await _users.CreateAsync(user, model.Password);
-        if (!create.Succeeded)
-        {
-            foreach (var error in create.Errors) ModelState.AddModelError(string.Empty, error.Description);
-            return View(model);
-        }
+        if (!create.Succeeded) return Fail(string.Join(" ", create.Errors.Select(e => e.Description)));
 
         try
         {
@@ -96,44 +90,23 @@ public class UserAccountsController : Controller
         catch (Exception)
         {
             await _users.DeleteAsync(user);   // do not leave a login without a guest record
-            ModelState.AddModelError(string.Empty, "The account could not be created. Please try again.");
-            return View(model);
+            return Fail("The account could not be created. Please try again.");
         }
 
-        TempData["Success"] = $"Staff account created. Login: {email}";
-        return RedirectToAction(nameof(Index));
+        return Done($"Staff account created. Login: {email}");
     }
 
     // ---- edit name, phone and email ------------------------------------------------
 
-    [HttpGet]
-    public async Task<IActionResult> Edit(string id)
-    {
-        var user = await FindManagedUserAsync(id);
-        if (user == null) return NotFound();
-
-        var customer = await _db.Customers.AsNoTracking().FirstOrDefaultAsync(c => c.UserId == user.Id);
-        if (customer == null) return NotFound();
-
-        return View(new EditAccountViewModel
-        {
-            UserId = user.Id,
-            FirstName = customer.FirstName,
-            LastName = customer.LastName,
-            Email = user.Email ?? "",
-            PhoneNumber = customer.PhoneNumber
-        });
-    }
-
     [HttpPost]
     public async Task<IActionResult> Edit(EditAccountViewModel model)
     {
-        if (!ModelState.IsValid) return View(model);
+        if (!ModelState.IsValid) return Fail(Errors());
 
         var user = await FindManagedUserAsync(model.UserId);
-        if (user == null) return NotFound();
+        if (user == null) return Fail(Missing);
         var customer = await _db.Customers.FirstOrDefaultAsync(c => c.UserId == user.Id);
-        if (customer == null) return NotFound();
+        if (customer == null) return Fail(Missing);
 
         // The new email must not belong to another login or another guest record.
         var newEmail = model.Email.Trim();
@@ -141,11 +114,7 @@ public class UserAccountsController : Controller
         var other = await _users.FindByEmailAsync(newEmail);
         var inUse = (other != null && other.Id != user.Id)
                     || await _db.Customers.AnyAsync(c => c.Email.ToLower() == lower && c.UserId != user.Id);
-        if (inUse)
-        {
-            ModelState.AddModelError(nameof(model.Email), "That email address is already in use.");
-            return View(model);
-        }
+        if (inUse) return Fail("That email address is already in use.");
 
         var phone = ReservationService.NormalizePhone(model.PhoneNumber ?? "");
 
@@ -169,13 +138,11 @@ public class UserAccountsController : Controller
         {
             await transaction.RollbackAsync();
             _db.ChangeTracker.Clear();
-            foreach (var error in result.Errors) ModelState.AddModelError(string.Empty, error.Description);
-            return View(model);
+            return Fail(string.Join(" ", result.Errors.Select(e => e.Description)));
         }
         await transaction.CommitAsync();
 
-        TempData["Success"] = "Account details updated.";
-        return RedirectToAction(nameof(Index));
+        return Done("Account details updated.");
     }
 
     // ---- disable / enable ---------------------------------------------------------
@@ -184,59 +151,66 @@ public class UserAccountsController : Controller
     public async Task<IActionResult> ToggleDisabled(string id)
     {
         var user = await FindManagedUserAsync(id);
-        if (user == null) return NotFound();
+        if (user == null) return Fail(Missing);
 
         if (IsDisabled(user))
         {
             await _users.SetLockoutEndDateAsync(user, null);
             await _users.ResetAccessFailedCountAsync(user);
-            TempData["Success"] = $"{user.Email} is enabled again.";
+            return Done($"{user.Email} is enabled again.");
         }
-        else
-        {
-            await _users.SetLockoutEnabledAsync(user, true);
-            await _users.SetLockoutEndDateAsync(user, DateTimeOffset.MaxValue);
-            await _users.UpdateSecurityStampAsync(user);   // ends their current login the next time it is checked
-            TempData["Success"] = $"{user.Email} is disabled and can no longer log in.";
-        }
-        return RedirectToAction(nameof(Index));
+
+        await _users.SetLockoutEnabledAsync(user, true);
+        await _users.SetLockoutEndDateAsync(user, DateTimeOffset.MaxValue);
+        await _users.UpdateSecurityStampAsync(user);   // ends their current login the next time it is checked
+        return Done($"{user.Email} is disabled and can no longer log in. Press Enable to undo.");
     }
 
     // ---- reset password -----------------------------------------------------------
-
-    [HttpGet]
-    public async Task<IActionResult> ResetPassword(string id)
-    {
-        var user = await FindManagedUserAsync(id);
-        if (user == null) return NotFound();
-
-        ViewBag.Email = user.Email;
-        return View(new ResetPasswordViewModel { UserId = user.Id });
-    }
 
     [HttpPost]
     public async Task<IActionResult> ResetPassword(ResetPasswordViewModel model)
     {
         var user = await FindManagedUserAsync(model.UserId);
-        if (user == null) return NotFound();
-
-        ViewBag.Email = user.Email;
-        if (!ModelState.IsValid) return View(model);
+        if (user == null) return Fail(Missing);
+        if (!ModelState.IsValid) return Fail(Errors());
 
         var token = await _users.GeneratePasswordResetTokenAsync(user);
         var result = await _users.ResetPasswordAsync(user, token, model.NewPassword);
-        if (!result.Succeeded)
-        {
-            foreach (var error in result.Errors) ModelState.AddModelError(string.Empty, error.Description);
-            return View(model);
-        }
+        if (!result.Succeeded) return Fail(string.Join(" ", result.Errors.Select(e => e.Description)));
 
         await _users.ResetAccessFailedCountAsync(user);
-        TempData["Success"] = $"Password reset for {user.Email}. Tell them the new password in person or by phone.";
-        return RedirectToAction(nameof(Index));
+        return Done($"Password reset for {user.Email}. Tell them the new password in person or by phone.");
     }
 
     // ---- helpers ------------------------------------------------------------------
+
+    private const string Missing = "That account no longer exists. Refresh the page.";
+
+    /// <summary>The page saves in the background and sends this header; without it the action redirects as before.</summary>
+    private bool IsFetch => Request.Headers["X-Requested-With"] == "fetch";
+
+    private IActionResult Done(string message)
+    {
+        if (IsFetch) return Json(new { ok = true, message });
+        TempData["Success"] = message;
+        return RedirectToAction(nameof(Index));
+    }
+
+    private IActionResult Fail(string message)
+    {
+        if (IsFetch) return Json(new { ok = false, message });
+        TempData["Error"] = message;
+        return RedirectToAction(nameof(Index));
+    }
+
+    private string Errors()
+    {
+        var messages = ModelState.Values.SelectMany(v => v.Errors)
+            .Select(e => e.ErrorMessage).Where(m => !string.IsNullOrWhiteSpace(m)).Distinct();
+        var text = string.Join(" ", messages);
+        return text.Length > 0 ? text : "Please check the details and try again.";
+    }
 
     private static bool IsDisabled(ApplicationUser user) =>
         user.LockoutEnd.HasValue && user.LockoutEnd.Value > DateTimeOffset.UtcNow;
