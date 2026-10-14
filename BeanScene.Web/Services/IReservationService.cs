@@ -6,6 +6,7 @@ namespace BeanScene.Web.Services;
 public interface IReservationService
 {
     Task<OperationResult<Reservation>> CreateAsync(ReservationInput input, string? memberUserId = null);
+    Task<string> DescribeGuestAsync(ReservationInput input, string? memberUserId = null);
     Task<OperationResult> UpdateAsync(ReservationInput input);
     Task<OperationResult> ChangeStatusAsync(int reservationId, ReservationStatus target);
     Task<OperationResult> AssignTablesAsync(int reservationId, IEnumerable<int> tableIds);

@@ -49,6 +49,24 @@ public class ReservationsController : Controller
         return LocalRedirect(back);
     }
 
+    // POST /Reservations/AddFromSchedule  (the + Add booking form on the Sittings page)
+    [HttpPost]
+    public async Task<IActionResult> AddFromSchedule(ReservationInput input, string? returnTo)
+    {
+        var back = !string.IsNullOrEmpty(returnTo) && Url.IsLocalUrl(returnTo) ? returnTo : Url.Action("Index", "Sittings")!;
+        input.ReservationId = 0;   // always a new booking
+        if (!ModelState.IsValid)
+        {
+            TempData["Error"] = string.Join(" ", ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage));
+            return LocalRedirect(back);
+        }
+        var note = await _reservations.DescribeGuestAsync(input);   // looked up before saving
+        var result = await _reservations.CreateAsync(input);
+        TempData[result.Succeeded ? "Success" : "Error"] =
+            result.Succeeded ? $"Booking added for {input.FirstName} {input.LastName}. {note}" : string.Join(" ", result.Errors);
+        return LocalRedirect(back);
+    }
+
     // POST /Reservations/AssignFromSchedule  (the Tables form under a booking)
     [HttpPost]
     public async Task<IActionResult> AssignFromSchedule(int id, List<int> selectedTableIds, string? returnTo)

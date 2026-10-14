@@ -66,14 +66,7 @@
                             <td><input type="text" name="sittings[@di].EndTime" value="@s.EndTime.ToString("HH:mm")" maxlength="5" pattern="([01][0-9]|2[0-3]):[0-5][0-9]" title="End time, for example 11:00" class="form-control form-control-sm p-0 text-center dy-field" style="width:56px;font-size:.75rem;height:22px" /></td>
                             <td><input type="number" name="sittings[@di].Capacity" value="@s.Capacity" min="1" max="500" title="Seats" class="form-control form-control-sm p-0 text-center dy-field" style="width:46px;font-size:.75rem;height:22px" /></td>
                             <td class="text-center">
-                                @if (Model.DayBookings.Any(b => b.SittingId == s.SittingId))
-                                {
-                                    <button type="button" class="btn btn-link btn-sm p-0 bk-open" style="font-size:.8rem" data-sitting="@s.SittingId" title="Show the bookings for this sitting">@Model.DayBookings.Count(b => b.SittingId == s.SittingId && b.Status != ReservationStatus.Cancelled)</button>
-                                }
-                                else
-                                {
-                                    <span class="text-muted">0</span>
-                                }
+                                <button type="button" class="btn btn-link btn-sm p-0 bk-open" style="font-size:.8rem" data-sitting="@s.SittingId" title="Show the bookings and add a booking">@Model.DayBookings.Count(b => b.SittingId == s.SittingId && b.Status != ReservationStatus.Cancelled)</button>
                             </td>
                             <td>
                                 @if (s.SittingType == SittingType.Special)

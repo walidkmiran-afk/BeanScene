@@ -10,6 +10,7 @@
         _ => "bg-secondary"
     };
 }
+<script src="~/js/add-booking.js"></script>
 @if (Model.Selected.HasValue)
 {
     var sel = Model.Selected.Value;
@@ -21,8 +22,9 @@
     {
         var s = item.Sitting;
         var list = Model.DayBookings.Where(b => b.SittingId == s.SittingId).ToList();
-        if (list.Count == 0) { continue; }
         var returnUrl = Url.Action("Index", "Sittings", new { selected = sel.ToString("yyyy-MM-dd"), open = s.SittingId }) ?? "";
+        // The restaurant closes when the last open sitting of the day ends.
+        var closesAt = items.Where(x => !x.Sitting.IsClosed).Select(x => x.Sitting.EndTime).DefaultIfEmpty(s.EndTime).Max();
         <div class="card mb-4 bk-panel" data-sitting="@s.SittingId" style="display:none">
             <div class="card-header py-2 d-flex justify-content-between align-items-center">
                 <strong>
@@ -32,6 +34,46 @@
                 <button type="button" class="btn-close bk-close" aria-label="Close"></button>
             </div>
             <div class="card-body py-2">
+
+                @if (!s.IsClosed)
+                {
+                <details class="mb-2">
+                    <summary class="btn btn-outline-primary btn-sm" style="list-style:none">+ Add booking</summary>
+                    <form asp-controller="Reservations" asp-action="AddFromSchedule" method="post"
+                          class="bk-add-form d-flex flex-wrap gap-2 align-items-end bg-light rounded p-2 mt-2"
+                          data-date="@sel.ToString("yyyy-MM-dd")" data-start="@s.StartTime.ToString("HH:mm")"
+                          data-end="@s.EndTime.ToString("HH:mm")" data-close="@closesAt.ToString("HH:mm")">
+                        <input type="hidden" name="SittingId" value="@s.SittingId" />
+                        <input type="hidden" name="Source" value="Phone" />
+                        <input type="hidden" name="returnTo" value="@returnUrl" />
+                        <input type="hidden" name="StartTime" value="" />
+                        <div><label class="form-label small mb-0">First name</label><input type="text" name="FirstName" maxlength="60" required class="form-control form-control-sm" style="width:110px" /></div>
+                        <div><label class="form-label small mb-0">Last name</label><input type="text" name="LastName" maxlength="60" required class="form-control form-control-sm" style="width:110px" /></div>
+                        <div><label class="form-label small mb-0">Email (optional)</label><input type="email" name="Email" maxlength="256" class="form-control form-control-sm" style="width:170px" /></div>
+                        <div><label class="form-label small mb-0">Phone</label><input type="text" name="PhoneNumber" required class="form-control form-control-sm" style="width:120px" /></div>
+                        <div>
+                            <label class="form-label small mb-0">Start time</label>
+                                                        <div class="input-group input-group-sm flex-nowrap" style="width:auto">
+                                <select class="form-select add-hour" style="min-width:5.5rem" aria-label="Start hour"><option>--</option></select>
+                                <span class="input-group-text">:</span>
+                                <select class="form-select add-minute" style="min-width:4.5rem" aria-label="Start minute"><option>--</option></select>
+                            </div>
+                        </div>
+                        <div><label class="form-label small mb-0">Duration</label><select name="DurationMinutes" class="form-select form-select-sm add-duration" style="width:130px"><option>--</option></select></div>
+                        <div><label class="form-label small mb-0">Guests</label><input type="number" name="NumberOfGuests" value="2" min="1" max="100" required class="form-control form-control-sm" style="width:64px" /></div>
+                        <div><label class="form-label small mb-0">Notes</label><input type="text" name="SpecialRequests" maxlength="500" class="form-control form-control-sm" style="width:160px" /></div>
+                        <button type="submit" class="btn btn-primary btn-sm">Add</button>
+                        <div class="add-none text-danger small w-100" hidden>No times left to book in this sitting.</div>
+                    </form>
+                </details>
+                }
+
+                @if (list.Count == 0)
+                {
+                    <div class="text-muted">No bookings in this sitting yet.</div>
+                }
+                else
+                {
                 <table class="table table-sm align-middle mb-0">
                     <thead><tr class="text-muted"><th>Time</th><th>Name</th><th>Phone</th><th>Guests</th><th>Tables</th><th>Status</th></tr></thead>
                     <tbody>
@@ -82,6 +124,7 @@
                     }
                     </tbody>
                 </table>
+                }
             </div>
         </div>
     }

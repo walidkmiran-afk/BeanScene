@@ -111,30 +111,64 @@ public class ReservationService : IReservationService
         }
     }
 
-    private async Task<Customer> FindOrCreateCustomerAsync(ReservationInput input, string? memberUserId)
+    /// <summary>How a booking's guest was recognised. Customer is null when a new guest record is needed.</summary>
+    private sealed record CustomerMatch(Customer? Customer, string Note);
+
+    /// <summary>Looks for the guest by email and by phone number and says which one matched.</summary>
+    private async Task<CustomerMatch> FindCustomerAsync(ReservationInput input, string? memberUserId)
     {
-        Customer? customer = null;
         if (memberUserId != null)
-            customer = await _db.Customers.FirstOrDefaultAsync(c => c.UserId == memberUserId);
+        {
+            var account = await _db.Customers.FirstOrDefaultAsync(c => c.UserId == memberUserId);
+            if (account != null) return new(account, "Linked to the logged-in member account.");
+        }
 
         var email = (input.Email ?? "").Trim().ToLower();
         var phone = NormalizePhone(input.PhoneNumber);
-        var first = input.FirstName.Trim();
-        var last = input.LastName.Trim();
+        var first = input.FirstName.Trim().ToLower();
+        var last = input.LastName.Trim().ToLower();
 
-        if (customer == null)
+        if (email != "")
         {
-            if (email != "")
-                customer = await _db.Customers.FirstOrDefaultAsync(c => c.Email.ToLower() == email);
-            else
-                customer = await _db.Customers.FirstOrDefaultAsync(c => c.Email == ""
-                    && c.PhoneNumber == phone && c.FirstName == first && c.LastName == last);
+            var byEmail = await _db.Customers.FirstOrDefaultAsync(c => c.Email.ToLower() == email);
+            if (byEmail != null)
+                return new(byEmail, byEmail.UserId != null ? "Matched a member account by email." : "Matched an earlier guest by email.");
         }
+
+        var byPhone = await _db.Customers.Where(c => c.PhoneNumber == phone).OrderBy(c => c.CustomerId).ToListAsync();
+
+        // The same guest: not a member, same phone number and the same name.
+        var same = byPhone.FirstOrDefault(c => c.UserId == null
+            && c.FirstName.ToLower() == first && c.LastName.ToLower() == last);
+        if (same != null) return new(same, "Matched an earlier guest by phone number.");
+
+        // A member's account is never taken over by a phone number alone.
+        var member = byPhone.FirstOrDefault(c => c.UserId != null);
+        if (member != null) return new(null, $"This phone number belongs to a member account ({member.FullName}). Saved as a separate guest.");
+
+        var other = byPhone.FirstOrDefault();
+        if (other != null) return new(null, $"This phone number is also used by {other.FullName}. Saved as a new guest.");
+
+        return new(null, "New guest.");
+    }
+
+    /// <summary>The note shown to staff after a booking: who the guest was matched to.</summary>
+    public async Task<string> DescribeGuestAsync(ReservationInput input, string? memberUserId = null) =>
+        (await FindCustomerAsync(input, memberUserId)).Note;
+
+    private async Task<Customer> FindOrCreateCustomerAsync(ReservationInput input, string? memberUserId)
+    {
+        var customer = (await FindCustomerAsync(input, memberUserId)).Customer;
+        var email = (input.Email ?? "").Trim().ToLower();
 
         if (customer == null)
         {
             customer = new Customer { Email = email };
             _db.Customers.Add(customer);
+        }
+        else if (customer.Email == "" && email != "")
+        {
+            customer.Email = email;   // they gave an email this time: keep it
         }
 
         customer.FirstName = input.FirstName.Trim();
@@ -366,18 +400,21 @@ public class ReservationService : IReservationService
         if (booked + input.NumberOfGuests > sitting.Capacity)
             errors.Add($"Not enough capacity: {booked} of {sitting.Capacity} guests are already booked for this sitting.");
 
-        // The same guest (matched by email) cannot hold two active reservations that overlap in time on one sitting.
+        // The same guest (matched by email, or by phone number and name) cannot hold two active reservations that overlap in time on one sitting.
         var email = (input.Email ?? "").Trim().ToLower();
         var phone = NormalizePhone(input.PhoneNumber);
+        var first = input.FirstName.Trim().ToLower();
+        var last = input.LastName.Trim().ToLower();
         var theirs = await _db.Reservations
             .Where(r => r.SittingId == sitting.SittingId && r.Status != ReservationStatus.Cancelled
-                        && (email != "" ? r.Customer.Email.ToLower() == email : r.Customer.PhoneNumber == phone)
+                        && ((email != "" && r.Customer.Email.ToLower() == email)
+                            || (r.Customer.PhoneNumber == phone && r.Customer.FirstName.ToLower() == first && r.Customer.LastName.ToLower() == last))
                         && (excludeReservationId == null || r.ReservationId != excludeReservationId))
             .Select(r => new { r.StartTime, r.DurationMinutes })
             .ToListAsync();
         var newStart = finishesAt - input.DurationMinutes;
         if (theirs.Any(o => { var s = o.StartTime.Hour * 60 + o.StartTime.Minute; return s < finishesAt && newStart < s + o.DurationMinutes; }))
-            errors.Add("This account already has a reservation for the selected time. Choose a different time or sitting, or change the existing reservation.");
+            errors.Add("This guest already has a reservation for the selected time. Choose a different time or sitting, or change the existing reservation.");
 
         return errors;
     }

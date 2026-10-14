@@ -64,13 +64,14 @@ public class BookingController : Controller
 
         if (ModelState.IsValid)
         {
+            var note = staff ? await _reservations.DescribeGuestAsync(input, memberId) : "";   // looked up before saving
             var result = await _reservations.CreateAsync(input, memberId);
             if (result.Succeeded)
             {
                 if (!staff)
                     return RedirectToAction(nameof(Confirmation), new { id = result.Value!.ReservationId });
 
-                var message = $"Booked: {input.FirstName} {input.LastName}, {input.NumberOfGuests} guests at {input.StartTime:h:mm tt} (Pending).";
+                var message = $"Booked: {input.FirstName} {input.LastName}, {input.NumberOfGuests} guests at {input.StartTime:h:mm tt} (Pending). {note}";
                 if (background) return Json(new { ok = true, message });
                 TempData["Success"] = message;
                 return RedirectToAction(nameof(Index), new { sittingId = input.SittingId });

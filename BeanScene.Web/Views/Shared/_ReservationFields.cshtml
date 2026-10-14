@@ -3,12 +3,9 @@
     bool lockGuest = ViewData["LockGuest"] is true;       // members: details come from their account
     bool showSource = ViewData["ShowSource"] is true;     // staff choose the source; online bookings are always "Online"
 
-    // The date picker narrows the sitting list to that day. The sittings come from the same SelectList the controller built.
+    // The calendar narrows the sitting list to the chosen day. The sittings come from the same SelectList the controller built.
     var sittingList = ((SelectList)ViewBag.Sittings).Items.Cast<Sitting>().ToList();
     var selectedSitting = sittingList.FirstOrDefault(s => s.SittingId == Model.SittingId);
-    var today = DateOnly.FromDateTime(DateTime.Today);
-    var minDate = sittingList.Count > 0 ? sittingList.Min(s => s.SittingDate) : today;
-    var maxDate = sittingList.Count > 0 ? sittingList.Max(s => s.SittingDate) : today;
     var sittingJson = System.Text.Json.JsonSerializer.Serialize(sittingList.Select(s => new
     {
         id = s.SittingId,
@@ -19,51 +16,63 @@
         label = s.Name + ", " + s.StartTime.ToString("h:mm tt") + " to " + s.EndTime.ToString("h:mm tt")
     }));
 }
+<style>
+    .bk-cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 3px; }
+    .bk-cal-grid .bk-cal-head { text-align: center; font-size: .75rem; color: #6c757d; padding: 2px 0; }
+    .bk-cal-grid button { padding: .3rem 0; }
+</style>
 <div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
 <input type="hidden" asp-for="ReservationId" />
 <input type="hidden" asp-for="RowVersion" />
 
 <div class="row">
-    <div class="col-md-3 mb-3">
-        <label for="sittingDate" class="form-label">Date</label>
-        <input type="date" id="sittingDate" class="form-control"
-               value="@(selectedSitting?.SittingDate.ToString("yyyy-MM-dd"))"
-               min="@minDate.ToString("yyyy-MM-dd")" max="@maxDate.ToString("yyyy-MM-dd")" />
-    </div>
-    <div class="col-md-3 mb-3">
-        <label asp-for="SittingId" class="form-label">Sitting</label>
-        <select asp-for="SittingId" class="form-select"><option value="">- pick a date first -</option></select>
-        <span asp-validation-for="SittingId" class="text-danger"></span>
-    </div>
-    <div class="col-md-3 mb-3">
-        <label for="startHour" class="form-label">Start time</label>
-        <input type="hidden" id="startTime" name="StartTime" value="@Model.StartTime.ToString("HH:mm")" />
-        <div class="input-group">
-            <select id="startHour" class="form-select" aria-label="Start hour" disabled><option>--</option></select>
-            <span class="input-group-text">:</span>
-            <select id="startMinute" class="form-select" aria-label="Start minute" disabled><option>--</option></select>
+    <div class="col-md-5 col-lg-4 mb-3">
+        <label class="form-label">Date</label>
+        <input type="hidden" id="sittingDate" value="@(selectedSitting?.SittingDate.ToString("yyyy-MM-dd"))" />
+        <div class="border rounded p-2" style="max-width:340px">
+            <div class="d-flex justify-content-between align-items-center mb-2">
+                <button type="button" id="calPrev" class="btn btn-sm btn-outline-secondary" aria-label="Previous month">&lsaquo;</button>
+                <strong id="calTitle"></strong>
+                <button type="button" id="calNext" class="btn btn-sm btn-outline-secondary" aria-label="Next month">&rsaquo;</button>
+            </div>
+            <div id="calGrid" class="bk-cal-grid"></div>
         </div>
-        <span asp-validation-for="StartTime" class="text-danger"></span>
     </div>
-    <div class="col-md-3 mb-3">
-        <label for="durationMinutes" class="form-label">Duration</label>
-        <select id="durationMinutes" name="DurationMinutes" class="form-select" disabled><option>--</option></select>
-        <span asp-validation-for="DurationMinutes" class="text-danger"></span>
-    </div>
-</div>
-<div class="row">
-    <div class="col-md-3 mb-3">
-        <label asp-for="NumberOfGuests" class="form-label"></label>
-        <input asp-for="NumberOfGuests" class="form-control" />
-        <span asp-validation-for="NumberOfGuests" class="text-danger"></span>
-    </div>
-    @if (showSource)
-    {
-        <div class="col-md-3 mb-3">
-            <label asp-for="Source" class="form-label"></label>
-            <select asp-for="Source" class="form-select" asp-items="Html.GetEnumSelectList<ReservationSource>()"></select>
+    <div class="col-md-7 col-lg-8">
+        <div class="mb-3">
+            <label asp-for="SittingId" class="form-label">Sitting</label>
+            <select asp-for="SittingId" class="form-select"><option value="">- pick a date first -</option></select>
+            <span asp-validation-for="SittingId" class="text-danger"></span>
+            <div id="sittingNote" class="form-text text-danger"></div>
         </div>
-    }
+        <div class="mb-3">
+            <label for="startHour" class="form-label">Start time</label>
+            <input type="hidden" id="startTime" name="StartTime" value="@Model.StartTime.ToString("HH:mm")" />
+            <div class="input-group">
+                <select id="startHour" class="form-select" aria-label="Start hour" disabled><option>--</option></select>
+                <span class="input-group-text">:</span>
+                <select id="startMinute" class="form-select" aria-label="Start minute" disabled><option>--</option></select>
+            </div>
+            <span asp-validation-for="StartTime" class="text-danger"></span>
+        </div>
+        <div class="mb-3">
+            <label for="durationMinutes" class="form-label">Duration</label>
+            <select id="durationMinutes" name="DurationMinutes" class="form-select" disabled><option>--</option></select>
+            <span asp-validation-for="DurationMinutes" class="text-danger"></span>
+        </div>
+        <div class="mb-3">
+            <label asp-for="NumberOfGuests" class="form-label"></label>
+            <input asp-for="NumberOfGuests" class="form-control" />
+            <span asp-validation-for="NumberOfGuests" class="text-danger"></span>
+        </div>
+        @if (showSource)
+        {
+            <div class="mb-3">
+                <label asp-for="Source" class="form-label"></label>
+                <select asp-for="Source" class="form-select" asp-items="Html.GetEnumSelectList<ReservationSource>()"></select>
+            </div>
+        }
+    </div>
 </div>
 
 <h2 class="h5 mt-2">Guest details</h2>
@@ -95,16 +104,25 @@
     var isNew = @(Model.ReservationId == 0 ? "true" : "false");   // new bookings cannot use times that have already passed
     var dateInput = document.getElementById('sittingDate');
     var select = document.getElementById('SittingId');
+    var sittingNote = document.getElementById('sittingNote');
     var hidden = document.getElementById('startTime');
     var hourSel = document.getElementById('startHour');
     var minSel = document.getElementById('startMinute');
     var durSel = document.getElementById('durationMinutes');
+    var calGrid = document.getElementById('calGrid');
+    var calTitle = document.getElementById('calTitle');
+    var calPrev = document.getElementById('calPrev');
+    var calNext = document.getElementById('calNext');
     var durations = [30, 45, 60, 90, 120, 150, 180];
     var durationWanted = parseInt('@Model.DurationMinutes', 10);
     var slots = [];      // allowed start times (minutes since midnight) for the chosen sitting, every 15 minutes
     var endMin = 0;      // when the chosen sitting ends (minutes since midnight)
     var closeMin = 0;    // when the restaurant closes: the end of the day's last sitting
     var selected = '@Model.SittingId';
+    var wantedName = ''; // the sitting the guest chose, remembered while a date does not have it
+    var calShown = null; // the first day of the month the calendar is showing
+    var MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+    var DAYS = ['Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa', 'Su'];
 
     function toMin(t) { var p = t.split(':'); return parseInt(p[0], 10) * 60 + parseInt(p[1], 10); }
     function pad(n) { return (n < 10 ? '0' : '') + n; }
@@ -115,6 +133,10 @@
         o.value = value;
         o.textContent = text;
         sel.appendChild(o);
+    }
+    function todayText() {
+        var now = new Date();
+        return now.getFullYear() + '-' + pad(now.getMonth() + 1) + '-' + pad(now.getDate());
     }
 
     // The restaurant closes when the last sitting of that day ends.
@@ -128,13 +150,68 @@
     function earliestStart(x) {
         var from = toMin(x.start);
         var now = new Date();
-        var todayText = now.getFullYear() + '-' + pad(now.getMonth() + 1) + '-' + pad(now.getDate());
-        if (isNew && x.date === todayText) from = Math.max(from, Math.ceil((now.getHours() * 60 + now.getMinutes()) / 15) * 15);
+        if (isNew && x.date === todayText()) from = Math.max(from, Math.ceil((now.getHours() * 60 + now.getMinutes()) / 15) * 15);
         return from;
     }
     // A sitting is only offered if at least the shortest booking (30 minutes) still fits.
     function hasRoom(x) { return earliestStart(x) + 30 <= toMin(x.end); }
 
+    // ---- the calendar (always open) -------------------------------------------------
+    function renderCal(followValue) {
+        var avail = {};
+        sittings.forEach(function (x) { if (hasRoom(x)) avail[x.date] = true; });
+        var dates = Object.keys(avail).sort();
+        var value = dateInput.value;
+
+        if (!calShown || followValue) {
+            var base = value || dates[0] || todayText();
+            calShown = new Date(parseInt(base.slice(0, 4), 10), parseInt(base.slice(5, 7), 10) - 1, 1);
+        }
+        var y = calShown.getFullYear(), m = calShown.getMonth();
+        var shownIndex = y * 12 + m;
+        var firstIndex = dates.length ? parseInt(dates[0].slice(0, 4), 10) * 12 + parseInt(dates[0].slice(5, 7), 10) - 1 : shownIndex;
+        var lastDate = dates.length ? dates[dates.length - 1] : null;
+        var lastIndex = lastDate ? parseInt(lastDate.slice(0, 4), 10) * 12 + parseInt(lastDate.slice(5, 7), 10) - 1 : shownIndex;
+        calPrev.disabled = shownIndex <= firstIndex;
+        calNext.disabled = shownIndex >= lastIndex;
+        calTitle.textContent = MONTHS[m] + ' ' + y;
+
+        calGrid.innerHTML = '';
+        DAYS.forEach(function (d) {
+            var h = document.createElement('div');
+            h.className = 'bk-cal-head';
+            h.textContent = d;
+            calGrid.appendChild(h);
+        });
+        var blanks = (new Date(y, m, 1).getDay() + 6) % 7;   // weeks start on Monday
+        for (var i = 0; i < blanks; i++) calGrid.appendChild(document.createElement('div'));
+
+        var daysInMonth = new Date(y, m + 1, 0).getDate();
+        var today = todayText();
+        for (var d = 1; d <= daysInMonth; d++) {
+            var key = y + '-' + pad(m + 1) + '-' + pad(d);
+            var b = document.createElement('button');
+            b.type = 'button';
+            b.textContent = d;
+            b.dataset.date = key;
+            var isSel = key === value;
+            b.className = 'btn btn-sm ' + (isSel ? 'btn-primary' : (avail[key] ? 'btn-outline-primary' : 'btn-light text-muted')) + (key === today ? ' fw-bold' : '');
+            b.disabled = !avail[key] && !isSel;
+            b.setAttribute('aria-pressed', isSel ? 'true' : 'false');
+            calGrid.appendChild(b);
+        }
+    }
+
+    calGrid.addEventListener('click', function (e) {
+        var b = e.target.closest('button[data-date]');
+        if (!b || b.disabled || b.dataset.date === dateInput.value) return;
+        dateInput.value = b.dataset.date;
+        dateInput.dispatchEvent(new Event('change'));
+    });
+    calPrev.addEventListener('click', function () { calShown = new Date(calShown.getFullYear(), calShown.getMonth() - 1, 1); renderCal(false); });
+    calNext.addEventListener('click', function () { calShown = new Date(calShown.getFullYear(), calShown.getMonth() + 1, 1); renderCal(false); });
+
+    // ---- sitting, start time and duration ------------------------------------------
     function fill() {
         var d = dateInput.value;
         var matches = sittings.filter(function (x) { return x.date === d && hasRoom(x); });
@@ -179,6 +256,7 @@
         fillMinutes(wantedMinute);
     }
 
+    // With no sitting chosen the time lists are empty, but the chosen time (in the hidden field) and duration are remembered.
     function clearTimes() {
         slots = [];
         hourSel.innerHTML = '<option>--</option>';
@@ -210,29 +288,39 @@
         fillHours(Math.floor(current / 60), current % 60);
     }
 
-    // Choosing a new date: nothing changes if the same sitting is on that day and the same time still fits.
-    // Otherwise it moves to the first sitting of that day, at its opening time.
+        function timeLabel(minutes) {
+        var h = Math.floor(minutes / 60), m = minutes % 60;
+        return (h % 12 === 0 ? 12 : h % 12) + ':' + pad(m) + ' ' + (h >= 12 ? 'PM' : 'AM');
+    }
+
+    // Choosing a new date keeps the start time as it is, and selects the sitting on that day that covers that time.
+    // If no sitting covers it, no other sitting is picked: it is left blank with a note, and the list only shows what is available.
     dateInput.addEventListener('change', function () {
-        var before = sittings.filter(function (x) { return String(x.id) === select.value; })[0];
         var t = hidden.value ? toMin(hidden.value) : -1;   // the time that is chosen now
         selected = '';
         fill();
         var day = sittings.filter(function (x) { return x.date === dateInput.value && hasRoom(x); })
                           .sort(function (a, b) { return toMin(a.start) - toMin(b.start); });
+        var cover = t < 0 ? null : day.filter(function (x) { return t >= earliestStart(x) && t + 30 <= toMin(x.end); })[0];
 
-        var same = before ? day.filter(function (x) {
-            return x.name === before.name && t >= earliestStart(x) && t + 30 <= toMin(x.end);
-        })[0] : null;
-
-        if (same) {
-            select.value = String(same.id);
-        } else {
-            if (day.length) select.value = String(day[0].id);
-            hidden.value = '';
+        sittingNote.textContent = '';
+        if (cover) {
+            select.value = String(cover.id);
+        } else if (t >= 0 && day.length) {
+            sittingNote.textContent = 'No sitting covers ' + timeLabel(t) + ' on this date. Please choose a sitting.';
         }
         applyWindow();
+        renderCal(true);
     });
-    select.addEventListener('change', applyWindow);
+    select.addEventListener('change', function () {
+        sittingNote.textContent = '';
+        applyWindow();
+    });
+    select.addEventListener('change', function () {
+        wantedName = '';
+        sittingNote.textContent = '';
+        applyWindow();
+    });
     hourSel.addEventListener('change', function () { fillMinutes(parseInt(minSel.value, 10)); });
     minSel.addEventListener('change', commit);
     durSel.addEventListener('change', function () { durationWanted = parseInt(durSel.value, 10); });
@@ -243,5 +331,6 @@
     }
     fill();
     applyWindow();
+    renderCal(true);
 })();
 </script>
