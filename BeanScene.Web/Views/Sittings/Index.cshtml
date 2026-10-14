@@ -1,5 +1,67 @@
 @model List<SittingListItem>
-@{ ViewData["Title"] = "Sittings"; bool showPast = (object?)ViewBag.ShowPast is true; }
+@{
+    ViewData["Title"] = "Sittings";
+    bool showPast = (object?)ViewBag.ShowPast is true;
+    var weekly = (List<StoreHour>)ViewBag.Hours;
+    var wi = 0;
+    var today = DateOnly.FromDateTime(DateTime.Now);
+    var nowTime = TimeOnly.FromDateTime(DateTime.Now);
+    var days = new[] { DayOfWeek.Monday, DayOfWeek.Tuesday, DayOfWeek.Wednesday, DayOfWeek.Thursday, DayOfWeek.Friday, DayOfWeek.Saturday, DayOfWeek.Sunday };
+    var types = new[] { SittingType.Breakfast, SittingType.Lunch, SittingType.Dinner };
+}
+<style>
+    .wk-field[type=number]::-webkit-inner-spin-button, .wk-field[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+    .wk-field[type=number] { -moz-appearance: textfield; }
+    .wk-table td, .wk-table th { padding: 2px 2px !important; }
+</style>
+<form asp-action="SaveWeekly" method="post" class="mb-3" style="font-size:.75rem">
+    <div class="d-flex align-items-center gap-3 mb-1">
+        <strong class="fs-6">Weekly hours</strong>
+        <button type="submit" class="btn btn-primary btn-sm py-0">Save weekly hours</button>
+    </div>
+    <table class="table table-sm table-borderless align-middle mb-0 wk-table" style="width:auto">
+        <thead>
+            <tr class="text-muted">
+                <th></th>
+                @foreach (var d in days)
+                {
+                    <th class="text-center">@d.ToString().Substring(0, 3)</th>
+                }
+            </tr>
+        </thead>
+        <tbody>
+        @foreach (var t in types)
+        {
+            <tr class="border-top">
+                <td style="vertical-align:top">
+                    <div class="d-flex flex-column gap-1 text-end">
+                        <div class="fw-semibold" style="height:22px;line-height:22px">@t</div>
+                        <div class="text-muted" style="height:22px;line-height:22px">From</div>
+                        <div class="text-muted" style="height:22px;line-height:22px">To</div>
+                        <div class="text-muted" style="height:22px;line-height:22px">Seats</div>
+                    </div>
+                </td>
+                @foreach (var d in days)
+                {
+                    var h = weekly.First(x => x.DayOfWeek == d && x.SittingType == t);
+                    <td style="vertical-align:top">
+                        <div class="d-flex flex-column align-items-center gap-1">
+                            <input type="hidden" name="hours[@wi].StoreHourId" value="@h.StoreHourId" />
+                            <input type="hidden" name="hours[@wi].IsOpen" value="@(h.IsOpen ? "true" : "false")" class="wk-flag" />
+                            <button type="button" class="btn btn-sm p-0 wk-btn" style="width:48px;height:22px;font-size:.7rem">@(h.IsOpen ? "Open" : "Closed")</button>
+                            <input type="text" name="hours[@wi].StartTime" value="@h.StartTime.ToString("HH:mm")" maxlength="5" pattern="([01][0-9]|2[0-3]):[0-5][0-9]" title="Start time, for example 07:00" class="form-control form-control-sm p-0 text-center wk-field" style="width:48px;font-size:.75rem;height:22px" />
+                            <input type="text" name="hours[@wi].EndTime" value="@h.EndTime.ToString("HH:mm")" maxlength="5" pattern="([01][0-9]|2[0-3]):[0-5][0-9]" title="End time, for example 11:00" class="form-control form-control-sm p-0 text-center wk-field" style="width:48px;font-size:.75rem;height:22px" />
+                            <input type="number" name="hours[@wi].Capacity" value="@h.Capacity" min="1" max="500" title="Seats" class="form-control form-control-sm p-0 text-center wk-field" style="width:48px;font-size:.75rem;height:22px" />
+                        </div>
+                    </td>
+                    wi++;
+                }
+            </tr>
+        }
+        </tbody>
+    </table>
+</form>
+
 <div class="d-flex justify-content-between align-items-center mb-3">
     <h1 class="h3 mb-0">Sittings</h1>
     <div>
@@ -18,7 +80,11 @@
             <td>@s.SittingType</td>
             <td>@s.StartTime.ToString("h:mm tt") - @s.EndTime.ToString("h:mm tt")</td>
             <td>@item.GuestsBooked / @s.Capacity</td>
-            <td>@if (s.IsClosed) { <span class="badge text-bg-secondary">Closed</span> } else { <span class="badge text-bg-success">Open</span> }</td>
+            <td>
+                @if (s.IsClosed) { <span class="badge text-bg-secondary">Closed</span> }
+                else if (s.SittingDate < today || (s.SittingDate == today && s.EndTime <= nowTime)) { <span class="badge text-bg-secondary">Finished</span> }
+                else { <span class="badge text-bg-success">Open</span> }
+            </td>
             <td class="text-end">
                 <a class="btn btn-sm btn-outline-primary" asp-action="Edit" asp-route-id="@s.SittingId">Edit</a>
                 @if (s.IsClosed)
@@ -35,3 +101,28 @@
     }
     </tbody>
 </table>
+
+<script>
+    // Each weekly sitting has an Open / Closed button. Closed greys out and locks From, To and Seats
+    // (locked, not disabled, so their values are still saved).
+    document.querySelectorAll('.wk-btn').forEach(function (btn) {
+        var cell = btn.closest('td');
+        var flag = cell.querySelector('.wk-flag');
+        function apply() {
+            var open = flag.value === 'true';
+            btn.textContent = open ? 'Open' : 'Closed';
+            btn.classList.toggle('btn-success', open);
+            btn.classList.toggle('btn-secondary', !open);
+            cell.querySelectorAll('.wk-field').forEach(function (input) {
+                input.readOnly = !open;
+                input.style.opacity = open ? '1' : '0.45';
+                input.style.backgroundColor = open ? '' : '#e9ecef';
+            });
+        }
+        btn.addEventListener('click', function () {
+            flag.value = flag.value === 'true' ? 'false' : 'true';
+            apply();
+        });
+        apply();
+    });
+</script>
