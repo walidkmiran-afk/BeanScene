@@ -27,5 +27,5 @@ public class Customer : BaseEntity
     public virtual ICollection<Reservation> Reservations { get; set; } = new List<Reservation>();
 
     [NotMapped]
-    public string FullName => $"{FirstName} {LastName}";
+    public string FullName => $"{FirstName} {LastName}".Trim();
 }

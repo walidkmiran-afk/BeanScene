@@ -71,7 +71,7 @@ public class BookingController : Controller
                 if (!staff)
                     return RedirectToAction(nameof(Confirmation), new { id = result.Value!.ReservationId });
 
-                var message = $"Booked: {input.FirstName} {input.LastName}, {input.NumberOfGuests} guests at {input.StartTime:h:mm tt} (Pending). {note}";
+                var message = $"Booked: {input.Name}, {input.NumberOfGuests} guests at {input.StartTime:h:mm tt} (Pending). {note}";
                 if (background) return Json(new { ok = true, message });
                 TempData["Success"] = message;
                 return RedirectToAction(nameof(Index), new { sittingId = input.SittingId });
@@ -113,8 +113,7 @@ public class BookingController : Controller
 
         var customer = await _db.Customers.AsNoTracking().FirstOrDefaultAsync(c => c.UserId == userId);
         if (customer == null) return;
-        input.FirstName = customer.FirstName;
-        input.LastName = customer.LastName;
+        input.Name = customer.FullName;
         input.Email = customer.Email;
         input.PhoneNumber = customer.PhoneNumber;
     }

@@ -63,7 +63,7 @@ public class ReservationsController : Controller
         var note = await _reservations.DescribeGuestAsync(input);   // looked up before saving
         var result = await _reservations.CreateAsync(input);
         TempData[result.Succeeded ? "Success" : "Error"] =
-            result.Succeeded ? $"Booking added for {input.FirstName} {input.LastName}. {note}" : string.Join(" ", result.Errors);
+            result.Succeeded ? $"Booking added for {input.Name}. {note}" : string.Join(" ", result.Errors);
         return LocalRedirect(back);
     }
 

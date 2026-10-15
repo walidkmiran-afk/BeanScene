@@ -409,21 +409,26 @@ public class ReservationService : IReservationService
         if (booked + input.NumberOfGuests > sitting.Capacity)
             errors.Add($"Not enough capacity: {booked} of {sitting.Capacity} guests are already booked for this sitting.");
 
-        // The same guest (matched by email, or by phone number and name) cannot hold two active reservations that overlap in time on one sitting.
+        // The same guest (matched by email, or by phone number) cannot hold two active reservations that overlap in time on one sitting.
         var email = (input.Email ?? "").Trim().ToLower();
         var phone = NormalizePhone(input.PhoneNumber);
-        var first = input.FirstName.Trim().ToLower();
-        var last = input.LastName.Trim().ToLower();
         var theirs = await _db.Reservations
             .Where(r => r.SittingId == sitting.SittingId && r.Status != ReservationStatus.Cancelled
-                        && ((email != "" && r.Customer.Email.ToLower() == email)
-                            || (r.Customer.PhoneNumber == phone && r.Customer.FirstName.ToLower() == first && r.Customer.LastName.ToLower() == last))
+                        && ((email != "" && r.Customer.Email.ToLower() == email) || r.Customer.PhoneNumber == phone)
                         && (excludeReservationId == null || r.ReservationId != excludeReservationId))
-            .Select(r => new { r.StartTime, r.DurationMinutes })
+            .Select(r => new { r.StartTime, r.DurationMinutes, r.Customer.Email, r.Customer.PhoneNumber })
             .ToListAsync();
         var newStart = finishesAt - input.DurationMinutes;
-        if (theirs.Any(o => { var s = o.StartTime.Hour * 60 + o.StartTime.Minute; return s < finishesAt && newStart < s + o.DurationMinutes; }))
-            errors.Add("This guest already has a reservation for the selected time. Choose a different time or sitting, or change the existing reservation.");
+        var clashes = theirs.Where(o => { var s = o.StartTime.Hour * 60 + o.StartTime.Minute; return s < finishesAt && newStart < s + o.DurationMinutes; }).ToList();
+        if (clashes.Count > 0)
+        {
+            var byPhone = clashes.Any(o => o.PhoneNumber == phone);
+            var byEmail = email != "" && clashes.Any(o => o.Email.ToLower() == email);
+            var what = byPhone && byEmail ? "this phone number and email address"
+                     : byEmail ? "this email address"
+                     : "this phone number";
+            errors.Add($"A reservation with {what} already exists for the selected time. Choose a different time or sitting, or change the existing reservation.");
+        }
 
         return errors;
     }

@@ -98,10 +98,22 @@ public class ReservationInput
 
     public ReservationSource Source { get; set; } = ReservationSource.Phone;
 
-    [Required, StringLength(60), Display(Name = "First name")]
+    /// <summary>The one name box on the forms. Everything before the first space is the first name and the rest is the last name, which can be empty.</summary>
+    [Required, StringLength(60), Display(Name = "Name")]
+    public string Name
+    {
+        get => $"{FirstName} {LastName}".Trim();
+        set
+        {
+            var text = (value ?? "").Trim();
+            var space = text.IndexOf(' ');
+            FirstName = space < 0 ? text : text.Substring(0, space);
+            LastName = space < 0 ? "" : text.Substring(space + 1).Trim();
+        }
+    }
+
     public string FirstName { get; set; } = string.Empty;
 
-    [Required, StringLength(60), Display(Name = "Last name")]
     public string LastName { get; set; } = string.Empty;
 
     [StringLength(256), RegularExpression(EmailRules.Pattern, ErrorMessage = EmailRules.Message), Display(Name = "Email (optional)")]

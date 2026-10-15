@@ -27,11 +27,11 @@ Screenshots: save images in docs/screenshots/ and delete the comment markers aro
 - Book a table with an always-open month calendar, then a sitting, a start time, a duration and the number of guests. The form opens on the next available date and sitting. Days with no room are greyed out.
 - The start time stays as chosen. When you pick a new date, the sitting that covers that time is selected for you. If no sitting covers it, nothing else is picked for you: the sitting is left blank with a note, and only the available choices are listed.
 - Start times are in 15 minute steps. A booking can start up to 30 minutes before its sitting ends, and must finish before the restaurant closes. Times that have already passed are blocked.
-- A guest only has to give a name and a phone number so the restaurant can call them. Email is optional.
+- A guest only has to give one name (a first name is enough) and a phone number so the restaurant can call them. Email is optional. A logged-in member's name is filled in for them. Signing up as a member asks for a first and last name.
 - Register as a member so your details are filled in automatically, then view and cancel your own reservations.
 - Sittings that were renamed after you booked show the old name crossed out with the new name and a grey "Changed" tag.
 - Australian phone number validation (`0412 345 678`, `02 9876 5432` or `+61` format).
-- One guest cannot hold two overlapping bookings on the same sitting.
+- The same phone number or the same email address cannot hold two overlapping bookings on one sitting. The message says which one matched.
 
 **Staff**
 - Book a table for a guest (in person, by phone or by email). Staff choose the source and stay on the page after each booking, so bookings can be entered one after another.

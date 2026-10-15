@@ -39,8 +39,7 @@
                 <input type="hidden" name="Source" value="@b.Source" />
                 <input type="hidden" name="Email" value="@b.Email" />
                 <input type="hidden" name="returnTo" value="@b.ReturnUrl" />
-                <div><label class="form-label small mb-0">First name</label><input type="text" name="FirstName" value="@b.FirstName" maxlength="60" required class="form-control form-control-sm" style="width:110px" /></div>
-                <div><label class="form-label small mb-0">Last name</label><input type="text" name="LastName" value="@b.LastName" maxlength="60" required class="form-control form-control-sm" style="width:110px" /></div>
+                               <div><label class="form-label small mb-0">Name</label><input type="text" name="Name" value="@($"{b.FirstName} {b.LastName}".Trim())" maxlength="60" required class="form-control form-control-sm" style="width:170px" /></div>
                 <div><label class="form-label small mb-0">Phone</label><input type="text" name="PhoneNumber" value="@b.Phone" required class="form-control form-control-sm" style="width:120px" /></div>
                 <div><label class="form-label small mb-0">Start</label><input type="text" name="StartTime" value="@b.Start.ToString("HH:mm")" maxlength="5" pattern="([01][0-9]|2[0-3]):[0-5][0-9]" title="Start time, for example 12:30" required class="form-control form-control-sm" style="width:64px" /></div>
                 <div><label class="form-label small mb-0">Minutes</label><input type="number" name="DurationMinutes" value="@b.Minutes" min="30" max="180" required class="form-control form-control-sm" style="width:70px" /></div>
