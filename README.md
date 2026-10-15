@@ -28,7 +28,7 @@ Screenshots: save images in docs/screenshots/ and delete the comment markers aro
 - The start time stays as chosen. When you pick a new date, the sitting that covers that time is selected for you. If no sitting covers it, nothing else is picked for you: the sitting is left blank with a note, and only the available choices are listed.
 - Start times are in 15 minute steps. A booking can start up to 30 minutes before its sitting ends, and must finish before the restaurant closes. Times that have already passed are blocked.
 - A guest only has to give one name (a first name is enough) and a phone number so the restaurant can call them. Email is optional. A logged-in member's name is filled in for them. Signing up as a member asks for a first and last name.
-- Register as a member so your details are filled in automatically, then view and cancel your own reservations.
+- Register as a member and your details are filled in for you. The booking form doesn't show the name, email and phone boxes at all for a logged-in member. You can also view and cancel your own reservations.
 - Sittings that were renamed after you booked show the old name crossed out with the new name and a grey "Changed" tag.
 - Australian phone number validation (`0412 345 678`, `02 9876 5432` or `+61` format).
 - The same phone number or the same email address cannot hold two overlapping bookings on one sitting. The message says which one matched.

@@ -75,21 +75,20 @@
     </div>
 </div>
 
-<h2 class="h5 mt-2">Guest details</h2>
-@if (lockGuest)
+@if (!lockGuest)
 {
-    <p class="text-muted small">You are logged in as a member, so your details are filled in automatically.</p>
+    <h2 class="h5 mt-2">Guest details</h2>
+    <div class="row">
+        <div class="col-md-6 mb-3"><label asp-for="Name" class="form-label"></label>
+            <input asp-for="Name" class="form-control" autocomplete="name" /><span asp-validation-for="Name" class="text-danger"></span></div>
+        <div class="col-md-6 mb-3"><label asp-for="PhoneNumber" class="form-label"></label>
+            <input asp-for="PhoneNumber" class="form-control" /><span asp-validation-for="PhoneNumber" class="text-danger"></span></div>
+    </div>
+    <div class="row">
+        <div class="col-md-6 mb-3"><label asp-for="Email" class="form-label"></label>
+            <input asp-for="Email" class="form-control" /><span asp-validation-for="Email" class="text-danger"></span></div>
+    </div>
 }
-<div class="row">
-    <div class="col-md-6 mb-3"><label asp-for="Name" class="form-label"></label>
-        <input asp-for="Name" class="form-control" autocomplete="name" readonly="@lockGuest" /><span asp-validation-for="Name" class="text-danger"></span></div>
-    <div class="col-md-6 mb-3"><label asp-for="PhoneNumber" class="form-label"></label>
-        <input asp-for="PhoneNumber" class="form-control" readonly="@lockGuest" /><span asp-validation-for="PhoneNumber" class="text-danger"></span></div>
-</div>
-<div class="row">
-    <div class="col-md-6 mb-3"><label asp-for="Email" class="form-label"></label>
-        <input asp-for="Email" class="form-control" readonly="@lockGuest" /><span asp-validation-for="Email" class="text-danger"></span></div>
-</div>
 <div class="mb-3">
     <label asp-for="SpecialRequests" class="form-label"></label>
     <textarea asp-for="SpecialRequests" class="form-control" rows="2" placeholder="e.g. table by the window, highchair required"></textarea>
