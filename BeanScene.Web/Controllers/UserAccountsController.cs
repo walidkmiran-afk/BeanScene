@@ -183,6 +183,49 @@ public class UserAccountsController : Controller
         return Done($"{user.Email} is disabled and can no longer log in. Press Enable to undo.");
     }
 
+    // ---- delete -------------------------------------------------------------------
+
+    [HttpPost]
+    public async Task<IActionResult> Delete(string userId)
+    {
+        var user = await FindManagedUserAsync(userId);
+        if (user == null) return Fail(Missing);
+
+        var email = user.Email;
+        var customer = await _db.Customers.FirstOrDefaultAsync(c => c.UserId == user.Id);
+
+        await using var transaction = await _db.Database.BeginTransactionAsync();
+        if (customer != null)
+        {
+            // Cancel upcoming bookings so no table is held for an account that no longer exists.
+            var today = RestaurantClock.Today;
+            var upcoming = await _db.Reservations.Include(r => r.Sitting)
+                .Where(r => r.CustomerId == customer.CustomerId && r.Sitting.SittingDate >= today
+                            && (r.Status == ReservationStatus.Pending || r.Status == ReservationStatus.Confirmed))
+                .ToListAsync();
+            foreach (var reservation in upcoming) reservation.Cancel();
+
+            // Keep the booking history for reports, but remove the personal details.
+            customer.FirstName = "Deleted";
+            customer.LastName = "Member";
+            customer.Email = $"deleted-{customer.CustomerId}@deleted.invalid";
+            customer.PhoneNumber = "0000000000";
+            customer.UserId = null;
+            await _db.SaveChangesAsync();
+        }
+
+        var result = await _users.DeleteAsync(user);
+        if (!result.Succeeded)
+        {
+            await transaction.RollbackAsync();
+            _db.ChangeTracker.Clear();
+            return Fail(string.Join(" ", result.Errors.Select(e => e.Description)));
+        }
+        await transaction.CommitAsync();
+
+        return Done($"{email} was deleted.");
+    }
+
     // ---- reset password -----------------------------------------------------------
 
     [HttpPost]

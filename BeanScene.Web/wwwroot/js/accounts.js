@@ -157,7 +157,7 @@
             closePanel();
             p.hidden = !p.hidden;
             if (!p.hidden) { const i = $('input:not([type=hidden])', p); if (i) i.focus(); }
-        } else if (act === 'edit' || act === 'reset') {
+        } else if (act === 'edit' || act === 'reset' || act === 'delete') {
             openPanel(act, el.closest('tr'));
         } else if (act === 'cancel') {
             const np = el.closest('#newPanel');

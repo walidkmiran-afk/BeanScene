@@ -4,7 +4,9 @@
     var panes = new[] { (Key: "staff", Label: "Staff", IsStaff: true), (Key: "members", Label: "Members", IsStaff: false) };
 }
 <style>
-    .acct-panel > td { background: #f8f9fa; }
+    .acct-panel > td {
+        background: #f8f9fa;
+    }
 </style>
 
 <div class="mx-auto" style="max-width: 960px;">
@@ -71,34 +73,42 @@
                             </tr>
                         </thead>
                         <tbody>
-                        @foreach (var a in Model.Where(x => x.IsStaff == p.IsStaff))
-                        {
-                            var phone = a.PhoneNumber ?? "";
-                            var digits = new string(phone.Where(char.IsDigit).ToArray());
-                            <tr class="acct-row"
-                                data-id="@a.UserId" data-name="@a.FullName" data-first="@a.FirstName" data-last="@a.LastName"
-                                data-email="@a.Email" data-phone="@phone"
-                                data-staff="@(a.IsStaff ? "1" : "0")" data-username="@(a.Email.Split('@')[0])"
-                                data-q="@($"{a.FullName} {a.Email} {phone}".ToLowerInvariant())" data-d="@digits">
-                                <td>
-                                    <div class="fw-semibold">@a.FullName</div>
-                                    <div class="small text-muted d-md-none">@a.Email</div>
-                                </td>
-                                <td class="d-none d-md-table-cell">@a.Email</td>
-                                <td class="d-none d-md-table-cell">@phone</td>
-                                <td>
-                                    @if (a.IsDisabled) { <span class="badge bg-secondary">Disabled</span> }
-                                    else { <span class="badge bg-success">Active</span> }
-                                </td>
-                                <td>
-                                    <div class="d-flex flex-wrap gap-1 justify-content-end">
-                                        <button type="button" class="btn btn-sm btn-outline-secondary" data-act="edit">Edit</button>
-                                        <button type="button" class="btn btn-sm btn-outline-secondary" data-act="reset">Reset password</button>
-                                        <button type="button" class="btn btn-sm @(a.IsDisabled ? "btn-outline-success" : "btn-outline-danger")" data-act="toggle">@(a.IsDisabled ? "Enable" : "Disable")</button>
-                                    </div>
-                                </td>
-                            </tr>
-                        }
+                            @foreach (var a in Model.Where(x => x.IsStaff == p.IsStaff))
+                            {
+                                var phone = a.PhoneNumber ?? "";
+                                var digits = new string(phone.Where(char.IsDigit).ToArray());
+                                <tr class="acct-row"
+                                    data-id="@a.UserId" data-name="@a.FullName" data-first="@a.FirstName" data-last="@a.LastName"
+                                    data-email="@a.Email" data-phone="@phone"
+                                    data-staff="@(a.IsStaff ? "1" : "0")" data-username="@(a.Email.Split('@')[0])"
+                                    data-q="@($"{a.FullName} {a.Email} {phone}".ToLowerInvariant())" data-d="@digits">
+                                    <td>
+                                        <div class="fw-semibold">@a.FullName</div>
+                                        <div class="small text-muted d-md-none">@a.Email</div>
+                                    </td>
+                                    <td class="d-none d-md-table-cell">@a.Email</td>
+                                    <td class="d-none d-md-table-cell">@phone</td>
+                                    <td>
+                                        @if (a.IsDisabled)
+                                        {
+                                            <span class="badge bg-secondary">Disabled</span>
+                                        }
+                                        else
+                                        {
+
+                                            <span class="badge bg-success">Active</span>
+                                        }
+                                    </td>
+                                    <td>
+                                        <div class="d-flex flex-wrap gap-1 justify-content-end">
+                                            <button type="button" class="btn btn-sm btn-outline-secondary" data-act="edit">Edit</button>
+                                            <button type="button" class="btn btn-sm btn-outline-secondary" data-act="reset">Reset password</button>
+                                            <button type="button" class="btn btn-sm @(a.IsDisabled ? "btn-outline-success" : "btn-outline-danger")" data-act="toggle">@(a.IsDisabled ? "Enable" : "Disable")</button>
+                                            <button type="button" class="btn btn-sm btn-outline-danger" data-act="delete">Delete</button>
+                                        </div>
+                                    </td>
+                                </tr>
+                            }
                             <tr class="acct-empty" hidden><td colspan="5" class="text-muted"></td></tr>
                         </tbody>
                     </table>
@@ -145,6 +155,19 @@
                 <div class="acct-err alert alert-danger py-1 mt-2 mb-0" hidden></div>
                 <div class="mt-2">
                     <button class="btn btn-primary btn-sm">Reset password</button>
+                    <button type="button" class="btn btn-link btn-sm" data-act="cancel">Cancel</button>
+                </div>
+            </form>
+        </template>
+
+        <template id="tpl-delete">
+            <form method="post" asp-action="Delete" data-acct="delete" class="py-2">
+                <div class="small fw-semibold mb-2">Delete <span class="acct-for"></span>?</div>
+                <input type="hidden" name="UserId" />
+                <div class="form-text mb-2">This deletes their login for good. Their upcoming bookings are cancelled and their name, email and phone are removed from past bookings. It can't be undone. To only stop them logging in, press Cancel and use Disable instead.</div>
+                <div class="acct-err alert alert-danger py-1 mt-2 mb-0" hidden></div>
+                <div class="mt-2">
+                    <button class="btn btn-danger btn-sm">Yes, delete</button>
                     <button type="button" class="btn btn-link btn-sm" data-act="cancel">Cancel</button>
                 </div>
             </form>

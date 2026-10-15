@@ -46,7 +46,7 @@ Screenshots: save images in docs/screenshots/ and delete the comment markers aro
 - **Bookings of a sitting.** Click a sitting's Bookings number, even when it is 0, to open its bookings with the shared panel and an **Add booking** form that offers only the valid start times and durations.
 - If a change leaves bookings outside every open sitting, the page lists them and asks for confirmation before they are cancelled. Other bookings move to the sitting that now covers their start time.
 - Weekly changes update only days that have not been customised by hand.
-- **Accounts page.** Staff and Members are in separate tabs with counts, and one search box finds an account by name, email or phone as you type. New staff accounts, editing, password resets and enable or disable all happen on the same page. A disabled account cannot log in, and its history is kept.
+- **Accounts page.** Staff and Members are in separate tabs with counts, and one search box finds an account by name, email or phone as you type. New staff accounts, editing, password resets, enable or disable and delete all happen on the same page. A disabled account cannot log in, and its history is kept. Deleting an account removes the login, cancels upcoming bookings and removes the person's name, email and phone from past bookings, which stay for reports.
 - Reports, and a REST API for reservations (GET, POST, PUT, DELETE).
 
 ## Business rules
