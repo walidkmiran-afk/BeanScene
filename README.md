@@ -41,7 +41,7 @@ Screenshots: save images in docs/screenshots/ and delete the comment markers aro
 - Assign one or more tables from the Main, Outside and Balcony areas (10 tables each). A table cannot be given to two overlapping reservations.
 
 **Managers**
-- **Sittings page.** A weekly hours editor (open or closed, from, to and seats for Breakfast, Lunch and Dinner on each day of the week), and a month calendar showing each day's sittings and number of bookings. Click a day to open it in place.
+- **Sittings page.** A weekly hours editor (open or closed, from, to and seats for Breakfast, Lunch and Dinner on each day of the week) with an All column that sets a meal on all seven days at once, where times can be typed short (12 becomes 12:00), and a month calendar showing each day's sittings and number of bookings. Click a day to open it in place.
 - **Day editor.** For any day: rename sittings, open or close each one, change times and seats, add a Special sitting, close the whole day or reset it to the weekly hours.
 - **Bookings of a sitting.** Click a sitting's Bookings number, even when it is 0, to open its bookings with the shared panel and an **Add booking** form that offers only the valid start times and durations.
 - If a change leaves bookings outside every open sitting, the page lists them and asks for confirmation before they are cancelled. Other bookings move to the sitting that now covers their start time.

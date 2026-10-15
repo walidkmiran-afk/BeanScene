@@ -17,6 +17,7 @@
             <thead>
                 <tr class="text-muted">
                     <th></th>
+                                        <th class="text-center">All</th>
                     @foreach (var d in days)
                     {
                         <th class="text-center">@d.ToString().Substring(0, 3)</th>
@@ -33,6 +34,23 @@
                             <div class="text-muted" style="height:22px;line-height:22px">From</div>
                             <div class="text-muted" style="height:22px;line-height:22px">To</div>
                             <div class="text-muted" style="height:22px;line-height:22px">Seats</div>
+                        </div>
+                    </td>
+                                        <td style="vertical-align:top;border-right:1px solid #dee2e6" class="wk-all">
+                        <div class="d-flex flex-column align-items-center gap-1">
+                            <button type="button" class="btn btn-sm p-0 wk-all-btn" title="Open or close this sitting on all seven days"
+                                    style="width:48px;height:22px;font-size:.7rem"></button>
+                            <input type="text" maxlength="5" pattern="([01][0-9]|2[0-3]):[0-5][0-9]"
+                                   title="Start time for all seven days, for example 07:00"
+                                   class="form-control form-control-sm p-0 text-center wk-all-field"
+                                   style="width:48px;font-size:.75rem;height:22px" />
+                            <input type="text" maxlength="5" pattern="([01][0-9]|2[0-3]):[0-5][0-9]"
+                                   title="End time for all seven days, for example 11:00"
+                                   class="form-control form-control-sm p-0 text-center wk-all-field"
+                                   style="width:48px;font-size:.75rem;height:22px" />
+                            <input type="number" min="1" max="500" title="Seats for all seven days"
+                                   class="form-control form-control-sm p-0 text-center wk-all-field"
+                                   style="width:48px;font-size:.75rem;height:22px" />
                         </div>
                     </td>
                     @foreach (var d in days)
