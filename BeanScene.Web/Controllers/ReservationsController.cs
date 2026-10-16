@@ -82,6 +82,27 @@ public class ReservationsController : Controller
     [HttpPost] public Task<IActionResult> Complete(int id, string? returnTo) => ChangeStatus(id, ReservationStatus.Completed, returnTo);
     [HttpPost] public Task<IActionResult> Cancel(int id, string? returnTo) => ChangeStatus(id, ReservationStatus.Cancelled, returnTo);
 
+    // POST /Reservations/Undo  (one step back: Confirmed -> Pending, Seated -> Confirmed, Completed -> Seated)
+    [HttpPost]
+    public async Task<IActionResult> Undo(int id, string? returnTo)
+    {
+        var reservation = await _reservations.GetAsync(id);
+        var target = reservation?.Status switch
+        {
+            ReservationStatus.Confirmed => ReservationStatus.Pending,
+            ReservationStatus.Seated => ReservationStatus.Confirmed,
+            ReservationStatus.Completed => ReservationStatus.Seated,
+            _ => (ReservationStatus?)null
+        };
+        if (target == null)
+        {
+            TempData["Error"] = "There is nothing to undo on this booking.";
+            if (!string.IsNullOrEmpty(returnTo) && Url.IsLocalUrl(returnTo)) return LocalRedirect(returnTo);
+            return RedirectToAction(nameof(Index));
+        }
+        return await ChangeStatus(id, target.Value, returnTo);
+    }
+
     private async Task<IActionResult> ChangeStatus(int id, ReservationStatus target, string? returnTo)
     {
         var result = await _reservations.ChangeStatusAsync(id, target);

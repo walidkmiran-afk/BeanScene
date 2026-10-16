@@ -70,7 +70,8 @@ else
                 ReturnUrl = returnTo,
                 ColSpan = 8,
                 CanDelete = isManager,
-                IsPast = isPast
+                IsPast = isPast,
+                IsPastDay = r.Sitting.SittingDate < RestaurantClock.Today
             };
 
             // A dark bar when a new day starts, and a light bar when a new sitting starts.

@@ -45,7 +45,8 @@
                     ReturnUrl = Model.ReturnUrl,
                     ColSpan = 6,
                     CanDelete = true,
-                    IsPast = isPast
+                    IsPast = isPast,
+                    IsPastDay = r.Sitting.SittingDate < RestaurantClock.Today
                 };
                 <tr class="@(r.Status == ReservationStatus.Cancelled ? "text-muted" : "")">
                     <td>@r.Sitting.SittingDate.ToString("ddd d MMM yyyy")</td>

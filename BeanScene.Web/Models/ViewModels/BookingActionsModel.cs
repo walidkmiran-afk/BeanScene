@@ -32,4 +32,7 @@ public class BookingActionsModel
 
     /// <summary>The booking's day has passed and it is still Pending or Confirmed. Worked out from the date, never stored.</summary>
     public bool IsPast { get; set; }
+
+    /// <summary>The booking's day has passed (any status). History is fixed, so nothing can be undone.</summary>
+    public bool IsPastDay { get; set; }
 }

@@ -71,6 +71,17 @@ public class Reservation : BaseEntity
         Status = ReservationStatus.Completed;
     }
 
+    /// <summary>One step back: Confirmed -> Pending, Seated -> Confirmed, Completed -> Seated. Pending and Cancelled have nothing to undo.</summary>
+    public void Undo()
+    {
+        Status = Status switch
+        {
+            ReservationStatus.Confirmed => ReservationStatus.Pending,
+            ReservationStatus.Seated => ReservationStatus.Confirmed,
+            ReservationStatus.Completed => ReservationStatus.Seated,
+            _ => throw new InvalidOperationException("There is nothing to undo.")
+        };
+    }
     private static void Require(bool condition, string message)
     {
         if (!condition) throw new InvalidOperationException(message);

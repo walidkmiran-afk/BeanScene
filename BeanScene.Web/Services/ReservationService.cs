@@ -226,6 +226,28 @@ public class ReservationService : IReservationService
             .FirstOrDefaultAsync(r => r.ReservationId == reservationId);
         if (reservation == null) return OperationResult.Fail("Reservation not found.");
 
+        // Undo: one step back (Confirmed -> Pending, Seated -> Confirmed, Completed -> Seated).
+        // Only for today and later, so a past day stays as it was.
+        var undo = (reservation.Status, target) is (ReservationStatus.Confirmed, ReservationStatus.Pending)
+            or (ReservationStatus.Seated, ReservationStatus.Confirmed)
+            or (ReservationStatus.Completed, ReservationStatus.Seated);
+        if (undo)
+        {
+            if (reservation.Sitting.SittingDate < RestaurantClock.Today)
+                return OperationResult.Fail("This booking is for a day that has passed, so it can't be changed back.");
+            try
+            {
+                reservation.Undo();
+                await _db.SaveChangesAsync();
+                return OperationResult.Ok();
+            }
+            catch (DbUpdateConcurrencyException)
+            {
+                _db.ChangeTracker.Clear();
+                return OperationResult.Fail("This reservation was changed by someone else. Reload it and try again.");
+            }
+        }
+
         // A booking whose day has passed cannot be confirmed or seated. This is worked out from the date; nothing is stored.
         if ((target is ReservationStatus.Confirmed or ReservationStatus.Seated) && reservation.Sitting.SittingDate < RestaurantClock.Today)
             return OperationResult.Fail("This booking is for a day that has passed, so it can't be confirmed or seated. You can cancel it.");

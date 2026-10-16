@@ -4,11 +4,23 @@
     var live = b.Status == ReservationStatus.Pending || b.Status == ReservationStatus.Confirmed;
     var canEdit = live && !b.IsPast;   // a booking from a day that has passed can only be cancelled
     var canAssign = b.Status != ReservationStatus.Cancelled && b.Status != ReservationStatus.Completed && !b.IsPast;
+
+    // Confirm, Seat and Complete turn into their own undo once they have been done (today and later days only).
+    var undoConfirm = b.Status == ReservationStatus.Confirmed && !b.IsPastDay;
+    var undoSeat = b.Status == ReservationStatus.Seated && !b.IsPastDay;
+    var undoComplete = b.Status == ReservationStatus.Completed && !b.IsPastDay;
+
     var buttons = new[]
     {
-        (Action: "Confirm", Label: "Confirm", Css: "btn-primary", On: b.Status == ReservationStatus.Pending && !b.IsPast, Ask: (string?)null),
-        (Action: "Seat", Label: "Seat", Css: "btn-info", On: canEdit, Ask: (string?)null),
-        (Action: "Complete", Label: "Complete", Css: "btn-success", On: b.Status == ReservationStatus.Seated, Ask: (string?)null),
+        undoConfirm
+            ? (Action: "Undo", Label: "Unconfirm", Css: "btn-outline-primary", On: true, Ask: (string?)null)
+            : (Action: "Confirm", Label: "Confirm", Css: "btn-primary", On: b.Status == ReservationStatus.Pending && !b.IsPast, Ask: (string?)null),
+        undoSeat
+            ? (Action: "Undo", Label: "Unseat", Css: "btn-outline-info", On: true, Ask: (string?)null)
+            : (Action: "Seat", Label: "Seat", Css: "btn-info", On: canEdit, Ask: (string?)null),
+        undoComplete
+            ? (Action: "Undo", Label: "Uncomplete", Css: "btn-outline-success", On: true, Ask: (string?)null)
+            : (Action: "Complete", Label: "Complete", Css: "btn-success", On: b.Status == ReservationStatus.Seated, Ask: (string?)null),
         (Action: "Cancel", Label: "Cancel", Css: "btn-outline-danger", On: live, Ask: (string?)"Cancel this booking?"),
         (Action: "Delete", Label: "Delete", Css: "btn-outline-secondary", On: b.Status != ReservationStatus.Seated && b.Status != ReservationStatus.Completed, Ask: (string?)"Delete this booking permanently?")
     }.Where(x => x.Action != "Delete" || b.CanDelete).ToList();
@@ -39,7 +51,7 @@
                 <input type="hidden" name="Source" value="@b.Source" />
                 <input type="hidden" name="Email" value="@b.Email" />
                 <input type="hidden" name="returnTo" value="@b.ReturnUrl" />
-                               <div><label class="form-label small mb-0">Name</label><input type="text" name="Name" value="@($"{b.FirstName} {b.LastName}".Trim())" maxlength="60" required class="form-control form-control-sm" style="width:170px" /></div>
+                <div><label class="form-label small mb-0">Name</label><input type="text" name="Name" value="@($"{b.FirstName} {b.LastName}".Trim())" maxlength="60" required class="form-control form-control-sm" style="width:170px" /></div>
                 <div><label class="form-label small mb-0">Phone</label><input type="text" name="PhoneNumber" value="@b.Phone" required class="form-control form-control-sm" style="width:120px" /></div>
                 <div><label class="form-label small mb-0">Start</label><input type="text" name="StartTime" value="@b.Start.ToString("HH:mm")" maxlength="5" pattern="([01][0-9]|2[0-3]):[0-5][0-9]" title="Start time, for example 12:30" required class="form-control form-control-sm" style="width:64px" /></div>
                 <div><label class="form-label small mb-0">Minutes</label><input type="number" name="DurationMinutes" value="@b.Minutes" min="30" max="180" required class="form-control form-control-sm" style="width:70px" /></div>

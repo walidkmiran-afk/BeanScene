@@ -59,6 +59,7 @@ Screenshots: save images in docs/screenshots/ and delete the comment markers aro
 - New reservations cannot be made for a time that has already passed.
 - A booking's time never changes when sittings change. Only its sitting can change, if another open sitting covers its start time.
 - A cancelled booking cannot be brought back, because its time and tables are free for someone else. A new booking has to be made.
+- A mistake with Confirm, Seat or Complete can be undone one step at a time, using the same button. Once a booking is Confirmed the Confirm button becomes Unconfirm and puts it back to Pending. Seat becomes Unseat and puts it back to Confirmed, and Complete becomes Uncomplete and puts it back to Seated. This only works for today and later days, so past days stay fixed.
 - A Pending or Confirmed booking from a day that has passed
   shows a grey **Past** tag and its buttons are disabled. This
   is worked out from the date and is never stored, so a wrong

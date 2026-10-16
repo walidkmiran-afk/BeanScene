@@ -103,7 +103,8 @@
                             ReturnUrl = returnUrl,
                             ColSpan = 6,
                             CanDelete = true,
-                            IsPast = isPast
+                            IsPast = isPast,
+                            IsPastDay = sel < RestaurantClock.Today
                         };
                         <tr data-booking data-start="@b.Start.ToString("HH:mm")" data-name="@b.Name" data-guests="@b.Guests" data-cancellable="@(canEdit ? "1" : "0")" class="@(b.Status == ReservationStatus.Cancelled ? "text-muted" : "")">
                             <td>@b.Start.ToString("HH:mm") <span class="text-muted">(@b.Minutes min)</span></td>
