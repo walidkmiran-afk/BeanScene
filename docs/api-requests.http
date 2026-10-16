@@ -1,4 +1,4 @@
-# REST API requests for Visual Studio 2022 (open this file; click "Send request" above each request).
+# REST API requests for Visual Studio (open this file; click "Send request" above each request).
 # Change the port to the one your app uses (see Properties/launchSettings.json or the browser address bar).
 @host = https://localhost:7000
 
@@ -14,7 +14,9 @@ GET {{host}}/api/reservations?status=Pending
 ### 3. GET - one reservation
 GET {{host}}/api/reservations/1
 
-### 4. POST - create a reservation (use a SittingId from the Sittings page; times are HH:mm:ss)
+### 4. POST - create a reservation
+# Use a SittingId from the Sittings page for a day that has not passed, and a start time that is still in the future.
+# Bookings in the past are refused. Times are HH:mm:ss.
 POST {{host}}/api/reservations
 Content-Type: application/json
 
@@ -51,7 +53,10 @@ Content-Type: application/json
 ### 6. PUT - change status
 PUT {{host}}/api/reservations/1/status?status=Confirmed
 
-### 7. Log out, log in as the manager, then DELETE (Manager only)
+### 7. Log out of the staff account
+POST {{host}}/api/auth/logout
+
+### 8. Log in as the manager, then DELETE (Manager only)
 POST {{host}}/api/auth/login
 Content-Type: application/json
 

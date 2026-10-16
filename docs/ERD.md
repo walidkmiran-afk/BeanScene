@@ -27,6 +27,7 @@ erDiagram
     SITTING {
         int SittingId PK
         string SittingType
+        string Name
         date SittingDate
         time StartTime
         time EndTime
@@ -72,6 +73,24 @@ Every Bean Scene table also has `CreatedAt`, `UpdatedAt` and `RowVersion` (from 
 | ApplicationUser - Customer | **One-to-one** (optional) | `Customer.UserId` FK with a unique index |
 | ApplicationUser - ApplicationRole | Many-to-many (Identity) | `AspNetUserRoles`; the app gives each user exactly one role |
 
+## Reservation status workflow
+
+```mermaid
+stateDiagram-v2
+    [*] --> Pending
+    Pending --> Confirmed : Confirm
+    Confirmed --> Pending : Undo
+    Pending --> Seated : Seat (needs a table)
+    Confirmed --> Seated : Seat (needs a table)
+    Seated --> Confirmed : Undo
+    Seated --> Completed : Complete
+    Completed --> Seated : Undo
+    Pending --> Cancelled : Cancel
+    Confirmed --> Cancelled : Cancel
+```
+
+Undo is not allowed for a day that has passed. A cancelled booking cannot be brought back.
+
 ## Class diagram (Mermaid)
 
 ```mermaid
@@ -102,6 +121,7 @@ classDiagram
         +Cancel()
         +Seat()
         +Complete()
+        +Undo()
     }
     Sitting "1" --> "*" Reservation
     Customer "1" --> "*" Reservation
