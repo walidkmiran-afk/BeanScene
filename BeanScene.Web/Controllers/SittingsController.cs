@@ -371,7 +371,7 @@ public class SittingsController : Controller
         return Back();
     }
 
-    // POST /Sittings/ResetDay  (puts the regular sittings of one day back on the weekly hours)
+    // POST /Sittings/ResetDay  (puts the day back on the weekly hours: regular sittings reset, Special sittings removed)
     [HttpPost]
     public async Task<IActionResult> ResetDay(DateOnly date)
     {
@@ -379,6 +379,14 @@ public class SittingsController : Controller
 
         var existing = await _db.Sittings.Where(x => x.SittingDate == date).ToListAsync();
         var hours = await _db.StoreHours.AsNoTracking().Where(h => h.DayOfWeek == date.DayOfWeek).ToListAsync();
+
+        await using var tx = await _db.Database.BeginTransactionAsync();
+
+        // Special sittings are not part of the weekly hours, so they are closed first. Their bookings then move to the
+        // regular sitting that covers their time, or are cancelled if none does.
+        var specials = existing.Where(x => x.SittingType == SittingType.Special).ToList();
+        foreach (var s in specials) s.IsClosed = true;
+
         var day = new List<Sitting>(existing);
 
         foreach (var h in hours)
@@ -417,6 +425,17 @@ public class SittingsController : Controller
         }
 
         await _db.SaveChangesAsync();
+
+        // A Special sitting is deleted, unless bookings (even cancelled ones) still belong to it. Then it stays closed.
+        foreach (var s in specials)
+        {
+            var hasBookings = await _db.Reservations.AnyAsync(r => r.SittingId == s.SittingId);
+            if (hasBookings) s.IsCustomised = true;
+            else _db.Sittings.Remove(s);
+        }
+        await _db.SaveChangesAsync();
+        await tx.CommitAsync();
+
         TempData["Success"] = DayMessage("Day reset to the weekly hours.", moved, cancelled);
         return Back();
     }
