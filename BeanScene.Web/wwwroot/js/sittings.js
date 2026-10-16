@@ -1,7 +1,8 @@
 ﻿// ---------------------------------------------------------------------------------------------
 // Sittings page. Nothing on this page reloads. Choosing a day, saving the weekly hours, saving a
 // day and pressing a booking button all go to the server in the background, then only the parts
-// that changed are swapped in. (The booking buttons themselves are in booking-actions.js.)
+// that changed are swapped in. (The booking buttons themselves are in booking-actions.js, and the
+// rules for time and seats boxes are in time-boxes.js.)
 // ---------------------------------------------------------------------------------------------
 var dayForm = null;
 var dayRows = null;
@@ -156,45 +157,16 @@ document.getElementById('weeklyUndo').addEventListener('click', function () {
     wkForm.querySelectorAll('.wk-btn').forEach(function (btn) { btn._apply(); });
 });
 
-// ---- Weekly boxes: the All column and short times ----
-// One set of rules for every From, To and Seats box in the weekly hours (the All column and Mon to Sun):
-//   - clicking into a box selects everything in it, so what you type replaces it
-//   - a short time is understood: 12 -> 12:00, 9 -> 09:00, 930 -> 09:30
-//   - the browser's own format message is switched off for this form; the checks here and on the server replace it
-// The All column's boxes have no name, so they are never saved themselves. They copy into the seven day boxes.
-wkForm.noValidate = true;
-
+// ---- Weekly hours: the All column ----
+// The All column sets one meal's Open / From / To / Seats on all seven days at once. Its boxes have no name,
+// so they are never saved themselves; they only copy into the day boxes, which Save weekly hours saves.
 function dayCells(tr) { return Array.prototype.slice.call(tr.querySelectorAll('td[data-day]')); }
 function allIndex(box) { return Array.prototype.indexOf.call(box.closest('td.wk-all').querySelectorAll('.wk-all-field'), box); }
 
-// Turns what was typed into a time. Gives '' when it is not a time.
-function toTime(text) {
-    var m = /^(\d{1,2})(?::?(\d{2}))?$/.exec(text.trim().replace('.', ':'));
-    if (!m) return '';
-    var h = parseInt(m[1], 10), min = m[2] ? parseInt(m[2], 10) : 0;
-    if (h > 23 || min > 59) return '';
-    return (h < 10 ? '0' : '') + h + ':' + (min < 10 ? '0' : '') + min;
-}
-
-// From and To are times, the third box is seats.
+// In the All column the first two boxes are times and the third is seats. In the day boxes the name says which.
 function isTimeBox(box) {
     if (box.classList.contains('wk-all-field')) return allIndex(box) < 2;
     return box.name.indexOf('Time') > -1;
-}
-
-// Tidy one box. A box that cannot be understood turns red.
-function tidyBox(box) {
-    if (isTimeBox(box)) {
-        var time = toTime(box.value);
-        if (time === '') { box.classList.add('wk-bad'); return false; }
-        box.value = time;
-    } else {
-        var seats = parseInt(box.value, 10);
-        if (!(seats >= 1 && seats <= 500)) { box.classList.add('wk-bad'); return false; }
-        box.value = seats;
-    }
-    box.classList.remove('wk-bad');
-    return true;
 }
 
 // Keep the All column in step with the seven days: the shared value, or blank (--) when the days differ.
@@ -219,6 +191,23 @@ function syncAll() {
     });
 }
 
+// The shared time and seats rules (time-boxes.js) apply to the day boxes and the All column.
+// A tidied All box also copies to the seven days.
+wireTimeBoxes(wkForm, '.wk-field, .wk-all-field', {
+    isTime: isTimeBox,
+    onTidy: function (box) {
+        if (box.classList.contains('wk-all-field')) {
+            var index = allIndex(box);
+            dayCells(box.closest('tr')).forEach(function (c) {
+                var day = c.querySelectorAll('.wk-field')[index];
+                day.value = box.value;
+                day.classList.remove('wk-bad');
+            });
+        }
+        syncAll();
+    }
+});
+
 // The All Open / Closed button opens or closes that meal on all seven days.
 wkForm.addEventListener('click', function (e) {
     var allBtn = e.target.closest('.wk-all-btn');
@@ -233,22 +222,6 @@ wkForm.addEventListener('click', function (e) {
     if (allBtn || e.target.closest('.wk-btn')) syncAll();
 });
 
-// When any weekly box is finished (Enter or click away): tidy it. A box in the All column also copies to the seven days.
-wkForm.addEventListener('change', function (e) {
-    var box = e.target;
-    if (!box.matches('.wk-field, .wk-all-field')) return;
-    if (!tidyBox(box)) return;
-    if (box.classList.contains('wk-all-field')) {
-        var index = allIndex(box);
-        dayCells(box.closest('tr')).forEach(function (c) {
-            var day = c.querySelectorAll('.wk-field')[index];
-            day.value = box.value;
-            day.classList.remove('wk-bad');
-        });
-    }
-    syncAll();
-});
-
 // Enter in an All box finishes it. It does not save the form.
 wkForm.addEventListener('keydown', function (e) {
     if (e.key === 'Enter' && e.target.closest('.wk-all-field')) {
@@ -259,23 +232,6 @@ wkForm.addEventListener('keydown', function (e) {
 
 wkForm.addEventListener('input', function (e) {
     if (e.target.closest('.wk-field')) syncAll();
-});
-
-// Clicking or tabbing into a weekly box selects everything in it.
-wkForm.addEventListener('focusin', function (e) {
-    var f = e.target;
-    if (f.matches('.wk-field, .wk-all-field')) { f.select(); f._justFocused = true; }
-});
-wkForm.addEventListener('mouseup', function (e) {
-    var f = e.target;
-    if (f._justFocused) { e.preventDefault(); f._justFocused = false; }
-});
-
-// Before saving, tidy every day box. If one is wrong it turns red and nothing is saved.
-wkForm.addEventListener('submit', function (e) {
-    var ok = true;
-    wkForm.querySelectorAll('.wk-field').forEach(function (box) { if (!tidyBox(box)) ok = false; });
-    if (!ok) { e.preventDefault(); e.stopImmediatePropagation(); }
 });
 
 document.getElementById('weeklyUndo').addEventListener('click', syncAll);
@@ -349,6 +305,9 @@ function initDay() {
     dayRows = document.getElementById('dayRows');
     confirmed = false;
     if (!dayForm) return;
+
+    // The shared time and seats rules (time-boxes.js).
+    wireTimeBoxes(dayForm, '.dy-field');
 
     dayNext = dayRows.querySelectorAll('.dy-row').length;
     dayRows.querySelectorAll('.dy-row').forEach(wireRow);

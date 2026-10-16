@@ -43,6 +43,7 @@ Screenshots: save images in docs/screenshots/ and delete the comment markers aro
 **Managers**
 - **Sittings page.** A weekly hours editor (open or closed, from, to and seats for Breakfast, Lunch and Dinner on each day of the week) with an All column that sets a meal on all seven days at once, where times can be typed short (12 becomes 12:00), and a month calendar showing each day's sittings and number of bookings. Click a day to open it in place.
 - **Day editor.** For any day: rename sittings, open or close each one, change times and seats, add a Special sitting, close the whole day or reset it to the weekly hours. Reset also removes any Special sittings. Their bookings move to the regular sitting that covers their time, or are cancelled if none does.
+- Time boxes in the weekly hours and the day editor work the same way. Type 12 or 930 and it becomes 12:00 or 09:30. Clicking into a box selects it, so what you type replaces it. A box that can't be understood turns red and nothing saves until it's fixed.
 - **Bookings of a sitting.** Click a sitting's Bookings number, even when it is 0, to open its bookings with the shared panel and an **Add booking** form that offers only the valid start times and durations.
 - If a change leaves bookings outside every open sitting, the page lists them and asks for confirmation before they are cancelled. Other bookings move to the sitting that now covers their start time.
 - Weekly changes update only days that have not been customised by hand.
