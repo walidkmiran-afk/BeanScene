@@ -4,10 +4,9 @@
 
 <form method="get" class="row g-2 mb-4">
     <div class="col-auto"><label class="form-label small">From</label>
-        <input type="date" name="from" value="@Model.From.ToString("yyyy-MM-dd")" class="form-control form-control-sm" /></div>
+        <input type="date" name="from" value="@Model.From.ToString("yyyy-MM-dd")" class="form-control form-control-sm" onchange="this.form.submit()" /></div>
     <div class="col-auto"><label class="form-label small">To</label>
-        <input type="date" name="to" value="@Model.To.ToString("yyyy-MM-dd")" class="form-control form-control-sm" /></div>
-    <div class="col-auto align-self-end"><button class="btn btn-sm btn-primary">Run report</button></div>
+        <input type="date" name="to" value="@Model.To.ToString("yyyy-MM-dd")" class="form-control form-control-sm" onchange="this.form.submit()" /></div>
 </form>
 
 <div class="row text-center mb-4">
