@@ -43,7 +43,7 @@ Screenshots: save images in docs/screenshots/ and delete the comment markers aro
 **Managers**
 - **Sittings page.** A weekly hours editor (open or closed, from, to and seats for Breakfast, Lunch and Dinner on each day of the week) with an All column that sets a meal on all seven days at once, where times can be typed short (12 becomes 12:00), and a month calendar showing each day's sittings and number of bookings. Click a day to open it in place.
 - **Day editor.** For any day: rename sittings, open or close each one, change times and seats, add a Special sitting, close the whole day or reset it to the weekly hours. Reset also removes any Special sittings. Their bookings move to the regular sitting that covers their time, or are cancelled if none does.
-- Time boxes in the weekly hours and the day editor work the same way. Type 12 or 930 and it becomes 12:00 or 09:30. Clicking into a box selects it, so what you type replaces it. A box that can't be understood turns red and nothing saves until it's fixed.
+- Time boxes in the weekly hours and the day editor work the same way. Type 12 or 930 and it becomes 12:00 or 09:30. Clicking into a box selects it, so what you type replaces it. A box that can't be understood turns red as soon as you leave it. A sitting that ends before it starts, or overlaps another sitting that day, turns red straight away too. Nothing saves until it's fixed.
 - **Bookings of a sitting.** Click a sitting's Bookings number, even when it is 0, to open its bookings with the shared panel and an **Add booking** form that offers only the valid start times and durations.
 - If a change leaves bookings outside every open sitting, the page lists them and asks for confirmation before they are cancelled. Other bookings move to the sitting that now covers their start time.
 - Weekly changes update only days that have not been customised by hand.
@@ -68,6 +68,38 @@ Screenshots: save images in docs/screenshots/ and delete the comment markers aro
 - Roles: **Manager**, **Staff** and **Member**, enforced with `[Authorize(Roles = ...)]`.
 - Concurrent edits are detected with a row version, so two staff members cannot silently overwrite each other.
 
+## How the time and seats boxes work
+
+The weekly hours table and the day editor on the Sittings page are full of small time and seats boxes. They all follow the same rules, so those rules live in one file, `wwwroot/js/time-boxes.js`, instead of being copied into each panel.
+
+**What the rules are**
+- A short time is understood: `12` becomes `12:00`, `9` becomes `09:00` and `930` becomes `09:30`.
+- Seats must be a whole number from 1 to 500.
+- Clicking or tabbing into a box selects everything in it, so what you type replaces it.
+- The browser's own format message is switched off. A box that can't be understood turns red instead, as soon as you leave it.
+- An open sitting that ends before it starts, or overlaps another open sitting on the same day, turns red as soon as you finish a box or press Open / Closed.
+- Nothing is saved while any box is red. The server checks the same rules again, so the page is never the only protection.
+
+**How a panel uses it**
+
+`sittings.js` makes one call for each panel:
+
+```js
+wireTimeBoxes(form, '.box-class', { isTime, onTidy, groups });
+```
+
+- `form` and `'.box-class'` say which boxes the rules apply to.
+- `isTime` says which boxes are times and which are seats. The default is a box whose name contains "Time".
+- `onTidy` runs after a box is tidied. The weekly hours use it to copy an All box into the seven days.
+- `groups` says where the open sittings are, one list per day, so the page can check that they don't clash. Each panel knows its own layout, so each gives its own `groups`.
+
+**Where it is used**
+- **Weekly hours:** the seven day boxes for each meal, and the three All boxes.
+- **Day editor:** the boxes of every row, including rows added with Add sitting.
+- **Add booking panel:** not yet. It could use the same rules with one more call.
+
+Because there is one copy, a change to a rule (for example a minimum gap between sittings) is made once, in `time-boxes.js`, and both panels get it.
+
 ## Tech
 
 | Area | Choice |
@@ -77,7 +109,7 @@ Screenshots: save images in docs/screenshots/ and delete the comment markers aro
 | Security | ASP.NET Core Identity, role-based authorisation, anti-forgery tokens |
 | Tests | xUnit with an in-memory SQLite database |
 
-Shared pieces live in `Views/Shared` (`_BookingActions`, `_ReservationSearch`, `_ReservationFields`, `_SittingLabel`) and `wwwroot/js` (`booking-actions.js`, `sittings.js`, `add-booking.js`, `accounts.js`).
+Shared pieces live in `Views/Shared` (`_BookingActions`, `_ReservationSearch`, `_ReservationFields`, `_SittingLabel`) and `wwwroot/js` (`booking-actions.js`, `sittings.js`, `time-boxes.js`, `add-booking.js`, `accounts.js`). `time-boxes.js` holds the time and seats rules shared by the weekly hours and the day editor.
 
 ## Run it
 

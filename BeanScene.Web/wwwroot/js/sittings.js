@@ -2,7 +2,7 @@
 // Sittings page. Nothing on this page reloads. Choosing a day, saving the weekly hours, saving a
 // day and pressing a booking button all go to the server in the background, then only the parts
 // that changed are swapped in. (The booking buttons themselves are in booking-actions.js, and the
-// rules for time and seats boxes are in time-boxes.js.)
+// rules for time and seats boxes, including the red warnings, are in time-boxes.js.)
 // ---------------------------------------------------------------------------------------------
 var dayForm = null;
 var dayRows = null;
@@ -191,8 +191,9 @@ function syncAll() {
     });
 }
 
-// The shared time and seats rules (time-boxes.js) apply to the day boxes and the All column.
+// The shared rules (time-boxes.js) apply to the day boxes and the All column.
 // A tidied All box also copies to the seven days.
+// groups = the open sittings of each day of the week, for the end-after-start and overlap check.
 wireTimeBoxes(wkForm, '.wk-field, .wk-all-field', {
     isTime: isTimeBox,
     onTidy: function (box) {
@@ -205,6 +206,15 @@ wireTimeBoxes(wkForm, '.wk-field, .wk-all-field', {
             });
         }
         syncAll();
+    },
+    groups: function () {
+        var byDay = {};
+        wkForm.querySelectorAll('td[data-day]').forEach(function (cell) {
+            if (cell.querySelector('.wk-flag').value !== 'true') return;
+            var f = cell.querySelectorAll('.wk-field');   // start, end, seats
+            (byDay[cell.dataset.day] = byDay[cell.dataset.day] || []).push({ start: f[0], end: f[1] });
+        });
+        return Object.keys(byDay).map(function (k) { return byDay[k]; });
     }
 });
 
@@ -231,43 +241,16 @@ wkForm.addEventListener('keydown', function (e) {
 });
 
 wkForm.addEventListener('input', function (e) {
+    e.target.classList.remove('wk-bad');
     if (e.target.closest('.wk-field')) syncAll();
 });
 
 document.getElementById('weeklyUndo').addEventListener('click', syncAll);
 syncAll();
 
-// Check the weekly hours before saving. Nothing is saved if a box is wrong, and the wrong boxes turn red:
-// an open sitting must end after it starts, and open sittings on the same day must not overlap.
-wkForm.addEventListener('input', function (e) {
-    e.target.classList.remove('wk-bad');
-});
+// Save the weekly hours. time-boxes.js has already stopped the save if anything is red.
 wkForm.addEventListener('submit', function (e) {
     e.preventDefault();
-    var bad = false;
-    function mark(input) { input.classList.add('wk-bad'); bad = true; }
-
-    wkForm.querySelectorAll('.wk-bad').forEach(function (i) { i.classList.remove('wk-bad'); });
-
-    var byDay = {};
-    wkForm.querySelectorAll('td[data-day]').forEach(function (cell) {
-        if (cell.querySelector('.wk-flag').value !== 'true') return;
-        var f = cell.querySelectorAll('.wk-field');   // start, end, seats
-        (byDay[cell.dataset.day] = byDay[cell.dataset.day] || []).push({ start: f[0], end: f[1] });
-    });
-
-    Object.keys(byDay).forEach(function (k) {
-        var list = byDay[k].sort(function (a, b) { return a.start.value < b.start.value ? -1 : (a.start.value > b.start.value ? 1 : 0); });
-        list.forEach(function (it, i) {
-            if (it.end.value <= it.start.value) {
-                mark(it.start); mark(it.end);
-            } else if (i > 0 && it.start.value < list[i - 1].end.value) {
-                mark(list[i - 1].end); mark(it.start);
-            }
-        });
-    });
-
-    if (bad) return;
     postAndRefresh(wkForm, null, true, snapshotWeekly);
 });
 
@@ -306,8 +289,18 @@ function initDay() {
     confirmed = false;
     if (!dayForm) return;
 
-    // The shared time and seats rules (time-boxes.js).
-    wireTimeBoxes(dayForm, '.dy-field');
+    // The shared rules (time-boxes.js). groups = the open sittings of this day.
+    wireTimeBoxes(dayForm, '.dy-field', {
+        groups: function () {
+            var list = [];
+            dayRows.querySelectorAll('.dy-row').forEach(function (tr) {
+                if (tr.querySelector('.dy-flag').value !== 'true') return;
+                var f = tr.querySelectorAll('.dy-field');   // start, end, seats
+                list.push({ start: f[0], end: f[1] });
+            });
+            return [list];
+        }
+    });
 
     dayNext = dayRows.querySelectorAll('.dy-row').length;
     dayRows.querySelectorAll('.dy-row').forEach(wireRow);
@@ -371,9 +364,8 @@ function initDay() {
         return result;
     }
 
-    // Check the day before saving. Wrong boxes turn red and nothing is saved:
-    // an open sitting must end after it starts, and open sittings must not overlap.
-    // Then, if bookings would be cancelled, a red box lists them and asks you to confirm.
+    // Save the day. time-boxes.js has already stopped the save if anything is red.
+    // If bookings would be cancelled, a red box lists them and asks you to confirm.
     dayForm.addEventListener('submit', function (e) {
         e.preventDefault();
 
@@ -382,27 +374,6 @@ function initDay() {
             postAndRefresh(dayForm, e.submitter, true);
             return;
         }
-
-        var bad = false;
-        function mark(input) { input.classList.add('wk-bad'); bad = true; }
-        dayForm.querySelectorAll('.wk-bad').forEach(function (i) { i.classList.remove('wk-bad'); });
-
-        var list = [];
-        dayRows.querySelectorAll('.dy-row').forEach(function (tr) {
-            if (tr.querySelector('.dy-flag').value !== 'true') return;
-            var f = tr.querySelectorAll('.dy-field');   // start, end, seats
-            list.push({ start: f[0], end: f[1] });
-        });
-        list.sort(function (a, b) { return a.start.value < b.start.value ? -1 : (a.start.value > b.start.value ? 1 : 0); });
-        list.forEach(function (it, i) {
-            if (it.end.value <= it.start.value) {
-                mark(it.start); mark(it.end);
-            } else if (i > 0 && it.start.value < list[i - 1].end.value) {
-                mark(list[i - 1].end); mark(it.start);
-            }
-        });
-
-        if (bad) return;
 
         if (!confirmed) {
             var affected = bookingsToCancel();
