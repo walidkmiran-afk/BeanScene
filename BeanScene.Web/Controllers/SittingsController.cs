@@ -258,6 +258,12 @@ public class SittingsController : Controller
     {
         IActionResult Back() => RedirectToAction(nameof(Index), new { selected = date.ToString("yyyy-MM-dd") });
         sittings ??= new List<DaySittingInput>();
+        
+        if (date < RestaurantClock.Today)
+        {
+            TempData["Error"] = "A day that has passed cannot be changed.";
+            return Back();
+        }
 
         foreach (var s in sittings)
         {
@@ -376,6 +382,12 @@ public class SittingsController : Controller
     public async Task<IActionResult> ResetDay(DateOnly date)
     {
         IActionResult Back() => RedirectToAction(nameof(Index), new { selected = date.ToString("yyyy-MM-dd") });
+
+        if (date < RestaurantClock.Today)
+        {
+            TempData["Error"] = "A day that has passed cannot be changed.";
+            return Back();
+        }
 
         var existing = await _db.Sittings.Where(x => x.SittingDate == date).ToListAsync();
         var hours = await _db.StoreHours.AsNoTracking().Where(h => h.DayOfWeek == date.DayOfWeek).ToListAsync();
