@@ -7,7 +7,8 @@
     const search = $('#acctSearch');
     const msg = $('#acctMsg');
     let tab = location.hash === '#members' ? 'members' : 'staff';
-    let panelRow = null;   // the open Edit / Reset password row, if any
+    let panelRow = null;   // the open panel row (Edit, Reset, Delete, Bookings or Book), if any
+    let reopen = null;     // after a booking is saved, this member's Bookings panel opens again
 
     function area() { return $('#acctArea'); }
     function token() { return $('input[name="__RequestVerificationToken"]', area()).value; }
@@ -62,7 +63,7 @@
         $$('tr.acct-panel').forEach(p => { p.hidden = p.previousElementSibling.hidden; });
     }
 
-    // ---- the one inline panel (Edit / Reset password) ---------------------------
+    // ---- the one inline panel (Edit / Reset password / Delete) ------------------
     function closePanel() {
         if (panelRow) {
             panelRow.previousElementSibling.classList.remove('table-active');
@@ -107,6 +108,62 @@
         if (first) first.focus();
     }
 
+    // ---- the panels that come from the server (Bookings / Book) -----------------
+    // Scripts in HTML that is put in with innerHTML do not run, so each one is replaced by a fresh copy that does.
+    function runScripts(root) {
+        $$('script', root).forEach(old => {
+            const s = document.createElement('script');
+            s.text = old.textContent;
+            old.replaceWith(s);
+        });
+    }
+
+    async function loadRemote(kind, row, td) {
+        const base = kind === 'book' ? area().dataset.bookUrl : area().dataset.bookingsUrl;
+        try {
+            const res = await fetch(base + '?userId=' + encodeURIComponent(row.dataset.id), { credentials: 'same-origin' });
+            td.innerHTML = await res.text();
+            runScripts(td);
+        } catch (e) {
+            td.textContent = 'Something went wrong. Refresh the page and try again.';
+        }
+    }
+
+    function openRemote(kind, row) {
+        const same = panelRow && panelRow.previousElementSibling === row && panelRow.dataset.kind === kind;
+        closePanel();
+        $('#newPanel').hidden = true;
+        if (same) return;   // clicking the same button again closes it
+
+        const tr = document.createElement('tr');
+        tr.className = 'acct-panel';
+        tr.dataset.kind = kind;
+        const td = document.createElement('td');
+        td.colSpan = 5;
+        td.textContent = 'Loading...';
+        tr.appendChild(td);
+        row.after(tr);
+        row.classList.add('table-active');
+        panelRow = tr;
+        loadRemote(kind, row, td);
+    }
+
+    // The booking buttons (Edit, Tables, Confirm, Seat, Complete, Cancel, Delete) in a member's list save in the
+    // background, show a small message, then the list is loaded again.
+    window.bkRefresh = function (form) {
+        const row = panelRow ? panelRow.previousElementSibling : null;
+        const td = panelRow ? panelRow.firstElementChild : null;
+        fetch(form.action, { method: 'POST', body: new FormData(form), credentials: 'same-origin' })
+            .then(r => r.text())
+            .then(html => {
+                const doc = parseHtml(html);
+                doc.querySelectorAll('.acct-err').forEach(x => x.remove());   // this page's own hidden error boxes are not the message
+                showMessage(doc);
+                if (row && td && td.isConnected) return loadRemote('bookings', row, td);
+            })
+            .catch(() => form.submit());
+    };
+
     // ---- save in the background, then refresh the lists ------------------------
     async function reload() {
         const res = await fetch(location.pathname + location.search, { headers: { 'X-Requested-With': 'fetch' } });
@@ -116,6 +173,13 @@
         area().replaceWith(fresh);
         panelRow = null;
         applyFilter(false);
+
+        // a booking was just made: show that member's bookings
+        if (reopen) {
+            const row = $$('tr.acct-row').find(r => r.dataset.id === reopen);
+            reopen = null;
+            if (row) openRemote('bookings', row);
+        }
     }
 
     async function send(url, data, form, onOk) {
@@ -159,6 +223,8 @@
             if (!p.hidden) { const i = $('input:not([type=hidden])', p); if (i) i.focus(); }
         } else if (act === 'edit' || act === 'reset' || act === 'delete') {
             openPanel(act, el.closest('tr'));
+        } else if (act === 'bookings' || act === 'book') {
+            openRemote(act, el.closest('tr'));
         } else if (act === 'cancel') {
             const np = el.closest('#newPanel');
             if (np) { np.hidden = true; $('form', np).reset(); $('.acct-err', np).hidden = true; }
@@ -177,7 +243,11 @@
         const f = e.target.closest('form[data-acct]');
         if (!f) return;
         e.preventDefault();
-        send(f.action, new FormData(f), f, f.dataset.acct === 'create' ? () => setTab('staff') : null);
+        const kind = f.dataset.acct;
+        const after = kind === 'create' ? () => setTab('staff')
+            : kind === 'book' ? () => { reopen = f.elements.userId.value; }
+            : null;
+        send(f.action, new FormData(f), f, after);
     });
 
     search.addEventListener('input', () => applyFilter(true));

@@ -5,22 +5,28 @@ using BeanScene.Web.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
 
 namespace BeanScene.Web.Controllers;
 
-/// <summary>Managers look after the Staff and Member logins: create staff, edit details, disable, reset passwords.
-/// Everything happens on the one Accounts page; the actions below only save and answer.</summary>
+/// <summary>Managers look after the Staff and Member logins: create staff, edit details, disable, reset passwords,
+/// and see and make a member's bookings. Everything happens on the one Accounts page; the actions below only save and answer.</summary>
 [Authorize(Roles = RoleNames.Manager)]
 public class UserAccountsController : Controller
 {
     private readonly UserManager<ApplicationUser> _users;
     private readonly ApplicationDbContext _db;
+    private readonly IReservationService _reservations;
+    private readonly ISittingService _sittings;
 
-    public UserAccountsController(UserManager<ApplicationUser> users, ApplicationDbContext db)
+    public UserAccountsController(UserManager<ApplicationUser> users, ApplicationDbContext db,
+        IReservationService reservations, ISittingService sittings)
     {
         _users = users;
         _db = db;
+        _reservations = reservations;
+        _sittings = sittings;
     }
 
     // ---- list -------------------------------------------------------------------
@@ -243,6 +249,89 @@ public class UserAccountsController : Controller
         return Done($"Password reset for {user.Email}. Tell them the new password in person or by phone.");
     }
 
+    // ---- a member's bookings ------------------------------------------------------
+
+    // GET /UserAccounts/Bookings?userId=...  (the panel that drops open under a member: every booking they have,
+    // upcoming first and then the history, each with the shared booking buttons)
+    [HttpGet]
+    public async Task<IActionResult> Bookings(string userId)
+    {
+        var customer = await MemberCustomerAsync(userId);
+        if (customer == null) return Content(Missing);
+
+        var today = RestaurantClock.Today;
+        var all = await _db.Reservations.AsNoTracking()
+            .Include(r => r.Sitting)
+            .Include(r => r.Customer)
+            .Include(r => r.ReservationTables).ThenInclude(rt => rt.Table)
+            .Where(r => r.CustomerId == customer.CustomerId)
+            .ToListAsync();
+
+        // Tables held by another booking at an overlapping time (greyed out in the Tables picker).
+        var unavailable = new Dictionary<int, HashSet<int>>();
+        foreach (var r in all.Where(r => r.Status != ReservationStatus.Cancelled && r.Status != ReservationStatus.Completed))
+            unavailable[r.ReservationId] = await _reservations.GetUnavailableTableIdsAsync(r.ReservationId);
+
+        var areas = await _db.Areas.AsNoTracking().Include(a => a.Tables).OrderBy(a => a.AreaId).ToListAsync();
+        foreach (var area in areas) area.Tables = area.Tables.OrderBy(t => t.TableId).ToList();
+
+        return PartialView("_MemberBookings", new MemberBookingsViewModel
+        {
+            Name = customer.FullName,
+            Upcoming = all.Where(r => r.Sitting.SittingDate >= today)
+                .OrderBy(r => r.Sitting.SittingDate).ThenBy(r => r.StartTime).ToList(),
+            Past = all.Where(r => r.Sitting.SittingDate < today)
+                .OrderByDescending(r => r.Sitting.SittingDate).ThenByDescending(r => r.StartTime).ToList(),
+            Unavailable = unavailable,
+            Areas = areas,
+            ReturnUrl = Url.Action(nameof(Index)) ?? "/UserAccounts"
+        });
+    }
+
+    // GET /UserAccounts/BookForm?userId=...  (the booking form that drops open under a member)
+    [HttpGet]
+    public async Task<IActionResult> BookForm(string userId)
+    {
+        var customer = await MemberCustomerAsync(userId);
+        if (customer == null) return Content(Missing);
+
+        var open = await _sittings.GetOpenUpcomingAsync();
+        ViewBag.Sittings = new SelectList(open, nameof(Sitting.SittingId), nameof(Sitting.DisplayName), 0);
+        ViewBag.UserId = userId;
+        ViewBag.MemberName = customer.FullName;
+
+        return PartialView("_MemberBookForm", new ReservationInput
+        {
+            Source = ReservationSource.Phone,
+            SittingId = 0,
+            Name = customer.FullName,
+            Email = customer.Email,
+            PhoneNumber = customer.PhoneNumber
+        });
+    }
+
+    // POST /UserAccounts/BookFor  (saves a booking for the member)
+    [HttpPost]
+    public async Task<IActionResult> BookFor(string userId, ReservationInput input)
+    {
+        var customer = await MemberCustomerAsync(userId);
+        if (customer == null) return Fail(Missing);
+
+        // The member's details always come from their account.
+        ModelState.Clear();
+        input.ReservationId = 0;   // always a new booking
+        input.Name = customer.FullName;
+        input.Email = customer.Email;
+        input.PhoneNumber = customer.PhoneNumber;
+        TryValidateModel(input);
+        if (!ModelState.IsValid) return Fail(Errors());
+
+        var result = await _reservations.CreateAsync(input, userId);
+        if (!result.Succeeded) return Fail(string.Join(" ", result.Errors));
+
+        return Done($"Booked for {customer.FullName}: {input.NumberOfGuests} guests at {input.StartTime:h:mm tt} (Pending).");
+    }
+
     // ---- helpers ------------------------------------------------------------------
 
     private const string Missing = "That account no longer exists. Refresh the page.";
@@ -286,4 +375,23 @@ public class UserAccountsController : Controller
         if (await _users.IsInRoleAsync(user, RoleNames.Member)) return user;
         return null;
     }
+
+    /// <summary>The guest record of a Member login (staff do not book tables here).</summary>
+    private async Task<Customer?> MemberCustomerAsync(string? userId)
+    {
+        var user = await FindManagedUserAsync(userId);
+        if (user == null || !await _users.IsInRoleAsync(user, RoleNames.Member)) return null;
+        return await _db.Customers.AsNoTracking().FirstOrDefaultAsync(c => c.UserId == user.Id);
+    }
+}
+
+/// <summary>What the panel under a member needs: their bookings, split into upcoming and history.</summary>
+public class MemberBookingsViewModel
+{
+    public string Name { get; set; } = "";
+    public List<Reservation> Upcoming { get; set; } = new();
+    public List<Reservation> Past { get; set; } = new();
+    public Dictionary<int, HashSet<int>> Unavailable { get; set; } = new();
+    public List<Area> Areas { get; set; } = new();
+    public string ReturnUrl { get; set; } = "";
 }

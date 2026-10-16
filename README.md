@@ -49,6 +49,7 @@ Screenshots: save images in docs/screenshots/ and delete the comment markers aro
 - If a change leaves bookings outside every open sitting, the page lists them and asks for confirmation before they are cancelled. Other bookings move to the sitting that now covers their start time.
 - Weekly changes update only days that have not been customised by hand.
 - **Accounts page.** Staff and Members are in separate tabs with counts, and one search box finds an account by name, email or phone as you type. New staff accounts, editing, password resets, enable or disable and delete all happen on the same page. A disabled account cannot log in, and its history is kept. Deleting an account removes the login, cancels upcoming bookings and removes the person's name, email and phone from past bookings, which stay for reports.
+- A member's row on the Accounts page also has **Bookings** and **Book** buttons. Bookings drops open every reservation the member has, upcoming first and then the history, with the same shared booking buttons (Edit, Tables, Confirm, Seat, Complete, Cancel, Delete). Book drops open the booking form with the member's details filled in and locked. Both open under the member's row, one panel at a time, and nothing leaves the page.
 - Reports update as soon as you change the From or To date, and a REST API for reservations (GET, POST, PUT, DELETE).
 
 ## Business rules

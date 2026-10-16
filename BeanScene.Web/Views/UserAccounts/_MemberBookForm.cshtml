@@ -1,0 +1,14 @@
+﻿@model ReservationInput
+@{
+    var fieldOptions = new ViewDataDictionary(ViewData) { { "LockGuest", true }, { "ShowSource", true } };
+}
+<form asp-controller="UserAccounts" asp-action="BookFor" method="post" data-acct="book" class="py-2">
+    <div class="small fw-semibold mb-2">Book a table for @ViewBag.MemberName</div>
+    <input type="hidden" name="userId" value="@ViewBag.UserId" />
+    <partial name="_ReservationFields" model="Model" view-data="fieldOptions" />
+    <div class="acct-err alert alert-danger py-1 mt-2 mb-0" hidden></div>
+    <div class="mt-2">
+        <button class="btn btn-primary btn-sm">Book</button>
+        <button type="button" class="btn btn-link btn-sm" data-act="cancel">Cancel</button>
+    </div>
+</form>

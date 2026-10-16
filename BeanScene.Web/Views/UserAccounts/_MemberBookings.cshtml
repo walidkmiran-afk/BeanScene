@@ -1,0 +1,77 @@
+﻿@using BeanScene.Web.Controllers
+@using BeanScene.Web.Services
+@model MemberBookingsViewModel
+@{
+    var groups = new[] { (Title: "Upcoming", Items: Model.Upcoming), (Title: "History", Items: Model.Past) };
+}
+<div class="bk-area py-2" style="font-size:.85rem">
+    <div class="small fw-semibold mb-1">Bookings for @Model.Name</div>
+    @if (!Model.Upcoming.Any() && !Model.Past.Any())
+    {
+        <div class="text-muted">No bookings yet.</div>
+    }
+    @foreach (var grp in groups)
+    {
+        if (!grp.Items.Any()) { continue; }
+        <div class="fw-semibold small text-muted mt-2">@grp.Title (@grp.Items.Count)</div>
+        <table class="table table-sm align-middle bg-white mb-2">
+            <thead>
+                <tr class="text-muted"><th>Date</th><th>Sitting</th><th>Start</th><th>Guests</th><th>Tables</th><th>Status</th></tr>
+            </thead>
+            <tbody>
+            @foreach (var r in grp.Items)
+            {
+                // Still Pending or Confirmed after its day has passed. Worked out from the date each time; nothing is stored.
+                var isPast = r.Sitting.SittingDate < RestaurantClock.Today
+                             && (r.Status == ReservationStatus.Pending || r.Status == ReservationStatus.Confirmed);
+                var actions = new BookingActionsModel
+                {
+                    ReservationId = r.ReservationId,
+                    SittingId = r.SittingId,
+                    Status = r.Status,
+                    FirstName = r.Customer.FirstName,
+                    LastName = r.Customer.LastName,
+                    Email = r.Customer.Email,
+                    Phone = r.Customer.PhoneNumber,
+                    Start = r.StartTime,
+                    Minutes = r.DurationMinutes,
+                    Guests = r.NumberOfGuests,
+                    Source = r.Source.ToString(),
+                    Requests = r.SpecialRequests,
+                    RowVersion = r.RowVersion,
+                    TableIds = r.ReservationTables.Select(rt => rt.TableId).ToList(),
+                    UnavailableTableIds = Model.Unavailable.TryGetValue(r.ReservationId, out var taken) ? taken : new HashSet<int>(),
+                    Areas = Model.Areas,
+                    ReturnUrl = Model.ReturnUrl,
+                    ColSpan = 6,
+                    CanDelete = true,
+                    IsPast = isPast
+                };
+                <tr class="@(r.Status == ReservationStatus.Cancelled ? "text-muted" : "")">
+                    <td>@r.Sitting.SittingDate.ToString("ddd d MMM yyyy")</td>
+                    <td><partial name="_SittingLabel" model="r" /></td>
+                    <td>@r.StartTime.ToString("h:mm tt")<br /><span class="small text-muted">@r.DurationMinutes min</span></td>
+                    <td>@r.NumberOfGuests</td>
+                    <td>@(r.ReservationTables.Any() ? string.Join(", ", r.ReservationTables.Select(rt => rt.Table.TableName).OrderBy(n => n)) : "-")</td>
+                    <td>
+                        @if (isPast)
+                        {
+                            <span class="badge bg-secondary">Past</span>
+                            <div class="small text-muted">was @r.Status</div>
+                        }
+                        else
+                        {
+                            <span class="badge @UiHelpers.StatusBadge(r.Status)">@r.Status</span>
+                        }
+                    </td>
+                </tr>
+                @if (!string.IsNullOrWhiteSpace(r.SpecialRequests))
+                {
+                    <tr><td colspan="6" class="text-muted small pt-0">Request: @r.SpecialRequests</td></tr>
+                }
+                <partial name="_BookingActions" model="actions" />
+            }
+            </tbody>
+        </table>
+    }
+</div>

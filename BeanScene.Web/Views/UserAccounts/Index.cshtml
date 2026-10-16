@@ -19,7 +19,7 @@
     <input id="acctSearch" type="search" class="form-control mb-3" placeholder="Search name, email or phone" autocomplete="off" />
     <div id="acctMsg" role="status" hidden></div>
 
-    <div id="acctArea" data-toggle-url="@Url.Action("ToggleDisabled")">
+    <div id="acctArea" data-toggle-url="@Url.Action("ToggleDisabled")" data-bookings-url="@Url.Action("Bookings")" data-book-url="@Url.Action("BookForm")">
         @Html.AntiForgeryToken()
 
         <div id="newPanel" class="card card-body mb-3" hidden>
@@ -101,6 +101,11 @@
                                     </td>
                                     <td>
                                         <div class="d-flex flex-wrap gap-1 justify-content-end">
+                                            @if (!a.IsStaff)
+                                            {
+                                                <button type="button" class="btn btn-sm btn-outline-primary" data-act="bookings">Bookings</button>
+                                                <button type="button" class="btn btn-sm btn-outline-primary" data-act="book">Book</button>
+                                            }
                                             <button type="button" class="btn btn-sm btn-outline-secondary" data-act="edit">Edit</button>
                                             <button type="button" class="btn btn-sm btn-outline-secondary" data-act="reset">Reset password</button>
                                             <button type="button" class="btn btn-sm @(a.IsDisabled ? "btn-outline-success" : "btn-outline-danger")" data-act="toggle">@(a.IsDisabled ? "Enable" : "Disable")</button>
@@ -176,5 +181,6 @@
 </div>
 
 @section Scripts {
-    <script src="~/js/accounts.js"></script>
+    <script src="~/js/booking-actions.js" asp-append-version="true"></script>
+    <script src="~/js/accounts.js" asp-append-version="true"></script>
 }
