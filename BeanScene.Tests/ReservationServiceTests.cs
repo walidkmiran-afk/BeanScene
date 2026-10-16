@@ -123,7 +123,11 @@ public class ReservationServiceTests
         await using (var db = t.NewContext())
             a = (await new ReservationService(db).CreateAsync(t.Input(startHour: 19, last: "A", email: "a@example.com"))).Value!.ReservationId;
         await using (var db = t.NewContext())
-            b = (await new ReservationService(db).CreateAsync(t.Input(startHour: 19, startMinute: 30, last: "B", email: "b@example.com"))).Value!.ReservationId;
+        {
+            var inputB = t.Input(startHour: 19, startMinute: 30, last: "B", email: "b@example.com");
+            inputB.PhoneNumber = "0400333444";   // a different guest, so the same-phone overlap rule does not apply
+            b = (await new ReservationService(db).CreateAsync(inputB)).Value!.ReservationId;
+        }
 
         await using (var db = t.NewContext())
             Assert.True((await new ReservationService(db).AssignTablesAsync(a, new[] { t.TableM1 })).Succeeded);
@@ -273,7 +277,11 @@ public class ReservationServiceTests
         await using (var db = t.NewContext())
             firstId = (await new ReservationService(db).CreateAsync(t.Input(guests: 2, last: "A", email: "a@example.com"))).Value!.ReservationId;
         await using (var db = t.NewContext())
-            await new ReservationService(db).CreateAsync(t.Input(guests: 3, last: "B", email: "b@example.com"));
+        {
+            var inputB = t.Input(guests: 3, last: "B", email: "b@example.com");
+            inputB.PhoneNumber = "0400333444";   // a different guest, so the two bookings do not clash on the phone number
+            await new ReservationService(db).CreateAsync(inputB);
+        }
         await using (var db = t.NewContext())
             await new ReservationService(db).ChangeStatusAsync(firstId, ReservationStatus.Confirmed);
 
