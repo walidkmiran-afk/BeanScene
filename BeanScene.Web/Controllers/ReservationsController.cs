@@ -123,24 +123,30 @@ public class ReservationsController : Controller
         return RedirectToAction(nameof(Index));
     }
 
-    // GET /Reservations/FollowUp  - Pending reservations, soonest sitting first (linked list + merge sort),
-    // searched with the same fields as the Reservations page.
+    // GET /Reservations/FollowUp  - bookings still to be dealt with (Pending, Confirmed, Seated), soonest sitting first
+    // (linked list + merge sort), searched with the same fields as the Reservations page.
+    // A booking leaves this list when it is Completed or Cancelled.
     public async Task<IActionResult> FollowUp(ReservationSearchCriteria criteria)
     {
-        criteria.Status = ReservationStatus.Pending;   // this list is always the pending ones
+        criteria.Status = null;   // every status is searched; Cancelled and Completed are dropped below
 
         var searching = !string.IsNullOrWhiteSpace(criteria.Name) || criteria.From.HasValue || criteria.To.HasValue
             || criteria.Source.HasValue || !string.IsNullOrWhiteSpace(criteria.TableName);
 
         criteria.From ??= RestaurantClock.Today;   // past bookings are not listed unless an earlier date is searched
 
-        var pending = await _reservations.SearchAsync(criteria);
-        var queue = new PendingFollowUpQueue(pending);
+        var open = (await _reservations.SearchAsync(criteria))
+            .Where(r => r.Status is ReservationStatus.Pending or ReservationStatus.Confirmed or ReservationStatus.Seated)
+            .ToList();
+        var queue = new PendingFollowUpQueue(open);
 
         ViewBag.Criteria = criteria;
         ViewBag.Searching = searching;
-        ViewBag.TotalPending = searching ? (await _reservations.GetPendingAsync()).Count : pending.Count;
-        ViewBag.Unavailable = await UnavailableTablesAsync(pending);
+        ViewBag.TotalPending = searching
+            ? (await _reservations.SearchAsync(new ReservationSearchCriteria { From = RestaurantClock.Today }))
+                .Count(r => r.Status is ReservationStatus.Pending or ReservationStatus.Confirmed or ReservationStatus.Seated)
+            : open.Count;
+        ViewBag.Unavailable = await UnavailableTablesAsync(open);
         return View(queue);
     }
 

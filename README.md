@@ -37,7 +37,8 @@ Screenshots: save images in docs/screenshots/ and delete the comment markers aro
 - Book a table for a guest (in person, by phone or by email). Staff choose the source and stay on the page after each booking, so bookings can be entered one after another.
 - Every booking checks the phone number and the email against existing customers. Staff are told whether the guest matched a member account or an earlier guest, and by which one. A phone number alone never attaches a booking to a member account, and the same number with a different name is kept as a separate guest.
 - Reservations list with search, grouped by day and by sitting. Dates, status, source and table search as soon as you change them, and a typed name searches on Enter. Every booking has the shared panel: Edit and Tables open inline, and Confirm, Seat, Complete, Cancel and Delete (managers only) save without reloading the page.
-- Follow-up list of pending reservations, soonest first, with the same search and the same panel. It is ordered with a merge sort held in a doubly linked list.
+- Follow-up list of open bookings (Pending, Confirmed and Seated), soonest first, with the same search and the same panel. A booking stays on the list until it is completed or cancelled, so Unconfirm and Unseat can still be used. It is ordered with a merge sort held in a doubly linked list.
+- Seat uses the tables ticked in the booking's Tables panel. Tick a table and press Seat, and the tables are saved and the guests seated in one step. If no table is ticked, Seat opens the Tables panel instead. A booking can never be seated without a table, and the server enforces this as well.
 - Assign one or more tables from the Main, Outside and Balcony areas (10 tables each). A table cannot be given to two overlapping reservations.
 
 **Managers**

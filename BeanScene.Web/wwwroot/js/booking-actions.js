@@ -61,5 +61,24 @@ document.addEventListener('submit', function (e) {
     var form = e.target;
     if (!form.closest('.bk-area')) return;
     e.preventDefault();
+
+    // Seat: use the tables ticked in that booking's Tables panel. Save them first, then seat.
+    var seat = /\/Seat\/(\d+)/i.exec(form.action);
+    var panel = seat ? document.querySelector('tr.bk-assign[data-rid="' + seat[1] + '"]') : null;
+    if (panel) {
+        if (!panel.querySelector('input[name="selectedTableIds"]:checked')) {
+            var edit = document.querySelector('tr.bk-edit[data-rid="' + seat[1] + '"]');
+            if (edit) edit.style.display = 'none';
+            panel.style.display = '';
+            showMessage(parseHtml('<div class="alert alert-warning">Choose a table, then press Seat.</div>'));
+            return;
+        }
+        var assignForm = panel.querySelector('form');
+        fetch(assignForm.action, { method: 'POST', body: new FormData(assignForm), credentials: 'same-origin' })
+            .then(function () { window.bkRefresh(form); })
+            .catch(function () { form.submit(); });
+        return;
+    }
+
     window.bkRefresh(form);
 });

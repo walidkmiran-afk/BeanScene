@@ -1,4 +1,5 @@
 @using BeanScene.Web.Data
+@using BeanScene.Web.Services
 @using Microsoft.EntityFrameworkCore
 @inject ApplicationDbContext Db
 @model BeanScene.Web.DataStructures.PendingFollowUpQueue
@@ -19,24 +20,24 @@
 }
 <div class="mx-auto" style="max-width:960px">
 
-<h1 class="h3 mb-1">Pending reservations to follow up</h1>
-<p class="text-muted">Soonest sitting first (merge sort, stored in a doubly linked list).</p>
+<h1 class="h3 mb-1">Reservations to follow up</h1>
+<p class="text-muted">Soonest sitting first (merge sort, stored in a doubly linked list). A booking stays here until it is completed or cancelled.</p>
 
 <partial name="_ReservationSearch" model="c" view-data="searchOptions" />
 
 <div id="fuList" class="bk-area">
 @if (searching)
 {
-    <p class="text-muted small mb-2">Showing <strong>@all.Count</strong> of <strong>@totalPending</strong> pending bookings. <a asp-action="FollowUp">Clear search</a></p>
+    <p class="text-muted small mb-2">Showing <strong>@all.Count</strong> of <strong>@totalPending</strong> open bookings. <a asp-action="FollowUp">Clear search</a></p>
 }
 else
 {
-    <p class="text-muted small mb-2"><strong>@all.Count</strong> pending bookings.</p>
+    <p class="text-muted small mb-2"><strong>@all.Count</strong> open bookings.</p>
 }
 
 @if (all.Count == 0)
 {
-    <p class="text-muted">@(searching ? "No pending bookings match your search." : "Nothing to follow up.")</p>
+    <p class="text-muted">@(searching ? "No open bookings match your search." : "Nothing to follow up.")</p>
 }
 else
 {
@@ -75,7 +76,8 @@ else
                 Areas = areas,
                 ReturnUrl = returnTo,
                 ColSpan = 5,
-                CanDelete = isManager
+                CanDelete = isManager,
+                IsPastDay = r.Sitting.SittingDate < RestaurantClock.Today
             };
 
             // A grey bar when a new day starts, and a light blue bar when a new sitting starts.
