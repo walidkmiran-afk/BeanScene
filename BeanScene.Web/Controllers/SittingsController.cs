@@ -33,7 +33,7 @@ public class SittingsController : Controller
             selected = (openYear == openNow.Year && openMonth == openNow.Month) ? openNow : new DateOnly(openYear, openMonth, 1);
         }
 
-        var today = DateOnly.FromDateTime(DateTime.Today);
+        var today = RestaurantClock.Today;
         var y = year ?? selected?.Year ?? today.Year;
         var m = month ?? selected?.Month ?? today.Month;
         if (m < 1 || m > 12 || y < 2000 || y > 2100) { y = today.Year; m = today.Month; }

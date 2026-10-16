@@ -67,7 +67,7 @@
             var closedDay = allClosed || (!any && d.Date >= today);
             var isSelected = Model.Selected.HasValue && Model.Selected.Value == d.Date;
             var bg = closedDay ? "#e9ecef" : custom ? "#fff3cd" : "#fff";
-            var style = "background:" + bg + ";" + (d.InMonth ? "" : "opacity:.5;") + (isSelected ? "outline:2px solid #0d6efd;outline-offset:-2px;" : "");
+            var style = "background:" + bg + ";" + (d.Date < today ? "background-image:linear-gradient(rgba(108,117,125,.20),rgba(108,117,125,.20));border-color:#adb5bd;" : "") + (d.InMonth ? "" : "opacity:.5;") + (isSelected ? "outline:2px solid #0d6efd;outline-offset:-2px;" : "");
             <td style="@style">
                 <a class="cal-day js-day" asp-action="Index" asp-route-year="@d.Date.Year" asp-route-month="@d.Date.Month" asp-route-selected="@d.Date.ToString("yyyy-MM-dd")">
                     <div class="@(d.Date == today ? "fw-bold text-primary" : "fw-semibold")">@d.Date.Day</div>
